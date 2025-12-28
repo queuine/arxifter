@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>arxifter: sifting through bioRχiv feeds</title>
+        <script type="importmap">
+        {
+            "imports": {
+                "react": "https://esm.sh/react/",
+                "react-dom": "https://esm.sh/react-dom/client",
+                "arxifter/biorxiv/": "{path_prefix}/static/lib/"
+            }
+        }
+        </script>
+        <script src="{path_prefix}/static/js/utils.js"></script>
+        <script src="{path_prefix}/config/js/fabric.js"></script>
+        <script type=module src="{path_prefix}/static/lib/arxifterinit.js"></script>
+        <link rel="stylesheet" type="text/css" href="{path_prefix}/static/css/biorxiv.css" />
+        <link rel="shortcut icon" type="image/png" href="{path_prefix}/static/img/favicon.png" />
+    </head>
+    <body>
+        <div id="root"></div>
+    </body>
+</html>

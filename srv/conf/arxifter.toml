@@ -1,0 +1,116 @@
+# arxifter configuration
+#
+# It has both parts to be set by system administrators
+# and technical parts (commonly not to be changed) that are here,
+# because (some) items from this file are served to the frontend too.
+#
+
+[urls]
+# where the arxifter web is served;
+# set it to "" if arxifter is served at the "/" path
+path_prefix = "/biorxiv"
+
+["session"]
+# technical items for providing guest users
+clue_vis = "clue_one"
+clue_hid = "clue_two"
+clue_str = "clue_three"
+clue_len = 16
+provided = "available"
+
+[handshake]
+# technical items for starting queries to LLM
+count = 8
+first_bits = 8
+
+[query]
+# technical items for making queries to LLM
+query_text = "query"
+to_explain = "explain"
+user_id = "user"
+is_guest = "guest"
+
+[answer]
+# technical items for getting answers from LLM
+llm_response = "answer"
+sys_message = "message"
+
+[view]
+# the page shown to users;
+# it has two versions:
+# with React served from CDN vs. locally
+main_page = "../view/page_cdn.html"
+#main_page = "../view/page_local.html"
+static_dir = "../view/static/"
+
+[popup]
+# to be set according to actual deployments
+back_name = "Arxifter"
+back_link = "https://arxifter.quadet.com"
+note_text = "about.txt"
+
+[ui]
+# for cookies that are used for recalling within UI;
+# no cookie is read at the server
+retain = 30
+user_id = "arxifter_userid"
+to_explain = "arxifter_explaining"
+subject_name = "arxifter_biorxiv_subject"
+
+[feeds]
+# if a deployment is to be used for a subset of feeds only,
+# the other feeds should be removed from the file specified here
+subjects = "subjects.txt"
+default_subject = "all"
+feed_size = 30
+
+[data]
+# where the feeds and the data based on them are stored
+# and how long they should be retained;
+# the two items "pruning", "kept_days" specify
+# the data retention vs. shedding the past data;
+storage_dir = "../data/"
+pruning = true
+kept_days = 30
+
+[prompts]
+# the prompts that are used for LLM querying
+plain = "prompts/plain.txt"
+explained = "prompts/explained.txt"
+
+[llms]
+# most of these items are technical;
+# the "query_top_count" item defines the maximal count
+# of articles that LLM can provide within one answer
+embed_model_name = "text-embedding-3-small"
+embed_batch_size = 30
+model_name = "gpt-5-nano"
+query_top_count = 5
+
+[users]
+# where ids of regular and guest users are stored;
+# users are set by ids only (not by name/password pairs);
+# if a deployment is to be w/o allowing guests,
+# the "with_guest" item has to be set to false
+regular_users = "../keys/users.list"
+with_guest = true
+guest_ids = "../keys/guest/"
+guest_span = 24
+
+[keys]
+# locations of LLM api keys;
+# the "indexer" key is used during feed ingesting
+indexer = "../keys/indexer.key"
+regular_users = "../keys/users/"
+guest_user = "../keys/guest.key"
+
+[mocking]
+# for development purposes
+answers_dir = "../conf/mocking/"
+mocking_delay = 4
+to_mock = false
+
+[debugging]
+# for testing purposes
+llm_answers = false
+feed_taking = false

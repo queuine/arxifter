@@ -1,57 +1,83 @@
 #!/usr/bin/env python
+"""
+Various inner settings for the arxifter.
+These settings are not expected to be changed.
+Those settings that are meant to be set by administrators
+of arxifter deployments are in a TOML file
+that is read at the "config" module.
+"""
 
-import os
-from pathlib import Path
+import re
 
-LLM_DEBUGGING = True
+APP_NAME = "arxifter"
+APP_MAX_CONTENT_LENGTH = 1024 * 1024
+APP_RESPONSE_TIMEOUT = 120
+
+COMMAND_CONFIG = "conf"
+COMMAND_CONFIG_ENV = "env"
+COMMAND_CONFIG_TEST = "test"
+COMMAND_FEEDS = "feeds"
+COMMAND_FEEDS_INGEST = "ingest"
+COMMAND_FEEDS_PRUNE = "prune"
+
+TRUTH_VALUES_STR = ["1", "y", "yes", "t", "true", "truth", "on", "ok"]
+FALSE_VALUES_STR = ["0", "n", "no", "f", "false", "untrue", "off", "ko"]
+
+ARTICLE_KEY_RANK = "artnum"
+ARTICLE_KEY_RANK_VAR = ["art", "num"]
+LLM_MATCHES_KEYS = ["match"]
+LLM_SUGGESTION_KEY = "instead"
+
+DATA_DIR_PERM = "perm"
+DATA_DIR_CURR = "curr"
 DOCUMENTS_SUBDIR = "docs"
+DOCUMENTS_FOR_VECTORS_SUBDIR = "docs4vecs"
 VECTORS_SUBDIR = "vecs"
-LLM_MODEL_NAME = "gpt-5-nano"
-LLM_EMBED_BATCH_SIZE = 100
-LLM_QUERY_TOP_COUNT = 5
-LLM_KEY_FILE_NAME = "llm_key.txt"
 
+MIN_QUERY_LEN = 3
+MAX_QUERY_LEN = 1000
 
-def set_llm_key(keys_dir):
-    key_string = Path(
-        os.path.join(keys_dir, LLM_KEY_FILE_NAME)
-    ).read_text(encoding="utf8").strip()
+ACTIVE_DATA_DIR_MAKING = "%Y_%m%d_%H%M"
+ACTIVE_DATA_DIR_LISTING = re.compile('^[\\d]{4}_[\\d]{4}_[\\d]{4}$')
+ATTEMPT_COUNT_DATA_DIR = 3
 
-    os.environ["OPENAI_API_KEY"] = key_string
+ENV_CONF_PATH = "ARXIFTER_CONFIG_PATH"
+JS_FABRIC_PREFIX = "get_fabric_"
 
+INFO_FILE_NAME = "info.json"
+EMBED_MODEL_NAME_KEY = "embed_model_name"
 
-def get_llm_settings_obj():
-    from llama_index.embeddings.openai import OpenAIEmbedding
-    from llama_index.llms.openai import OpenAI
-    from llama_index.core import Settings
+GUEST_ID_LENGTH = 32
+HEXDIGITS = "0123456789abcdef"
+HEXDIGITS_REV = "".join(reversed(list(HEXDIGITS)))
+GUEST_IDS_LIST_SIZE = 1
+GUEST_FILENAME_MAKING = "%Y_%m_%d_%H"
+GUEST_FILENAME_LISTING = re.compile(
+    '^([\\d]{4})_([\\d]{2})_([\\d]{2})_([\\d]{2})$'
+)
 
-    Settings.embed_model = OpenAIEmbedding(
-        embed_batch_size=LLM_EMBED_BATCH_SIZE)
-    Settings.llm = OpenAI(model=LLM_MODEL_NAME)
+INDENT_SIZE = 4
+SESSION_CLUE_LEN_BASE = len(HEXDIGITS)
+NEW_DIRS_MODE = 0o755
 
-    return Settings
+ATTEMPT_COUNT_INDEX = 3
+VEC_FEED_INDEX_SLEEP = 120
 
+ATTEMPT_COUNT_FEED = 6
+RSS_FEED_TAKE_SLEEP = 15
+RSS_FEED_URL_BASE = "https://connect.biorxiv.org/biorxiv_xml.php?subject="
+RSS_FEED_FILE_NAME = "feed.rss"
 
-def get_llm_qa_template():
-    from llama_index.core import PromptTemplate
+BIORXIV_FEED_SIZE = 30
+BIORXIV_DOI_START = "10.64898"
+BIORXIV_DOI_ENDS = ["v", "?"]
 
-    new_qa_template_str = (
-        'You are a top-tier expert biological system that helps scientists '
-        'to keep their knowledge up-to-date '
-        'by analyzing a set of provided articles.\n'
-        'The articles are below.\n'
-        '---------------------\n'
-        '{context_str}\n'
-        '---------------------\n'
-        'Given the articles and not prior knowledge, '
-        'answer the query with always returning '
-        'the doi and title parts of the relevant articles '
-        'along with the reasons for selecting those individual articles.\n'
-        'You can add other information if the query aks for it explicitly.\n'
-        'Provide the answer as a JSON list, '
-        'so that it is easy to put it on web.\n'
-        'Query: {query_str}\n'
-        'Answer: '
-    )
+VIEW_WARNING_KEY = "warning"
+VIEW_WARNING_ANSWER_WRONG = "an unrecognizable answer from LLM"
 
-    return PromptTemplate(new_qa_template_str)
+MOCK_SUBJECTS_ANSWER = ["all", "bio"]
+MOCK_SUBJECTS_SUGGESTED = ["ani"]
+MOCK_ANSWER_PLAIN = "answer_plain.json"
+MOCK_ANSWER_EXPLAINED = "answer_explained.json"
+MOCK_SUGGESTED_PLAIN = "suggested_plain.json"
+MOCK_SUGGESTED_EXPLAINED = "suggested_explained.json"

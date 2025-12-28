@@ -1,0 +1,7 @@
+FROM python:3.12
+RUN apt update && apt install -y node-babel7
+WORKDIR /arxifter
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
+EXPOSE 5000
+CMD ["/bin/bash"]

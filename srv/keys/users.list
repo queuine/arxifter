@@ -1,0 +1,9 @@
+# Location of this file is specified in configuration: "users"/"regular_users",
+# and it should contain paired lines with user id vs. name of file with API key.
+# It is e.g.:
+# ef89034aaf66e37d4eea7438913d934b
+# user_001.key
+#
+# The directory where the files with API keys are to be located is specified
+# in configuration: "keys"/"regular_users".
+#

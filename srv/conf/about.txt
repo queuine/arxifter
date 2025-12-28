@@ -1,0 +1,2 @@
+To use Arxifter, either fill in user id or use it as a guest user.
+Guest user is for evaluation purposes only.
