@@ -183,7 +183,7 @@ function ArxifterPage() {
         const postData = JSON.stringify(postDict);
 
         const postUrl = [
-            getFabricUrls()["pathPrefix"],
+            getFabricServer()["pathPrefix"],
             utilsGetSessionParts().join("/")
         ].join("/");
         fetch(postUrl, {

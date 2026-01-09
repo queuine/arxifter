@@ -22,7 +22,7 @@ function FormSubject(props) {
 
     return (
         <label>
-            <span id="form-subject-title">biorxiv subject:</span>
+            <span id="form-subject-title">biorxiv feed:</span>
             <select
                 id="form-subject-selection"
                 name={subjectName}

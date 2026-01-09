@@ -94,7 +94,7 @@ def _get_item_list(answer):
     return [answer]
 
 
-def _take_article_data(app, article_path, addendum, leave_keys):
+def _take_article_data(logger, article_path, addendum, leave_keys):
     try:
         with open(article_path, encoding="utf8") as fh:
             article = json.load(fh)
@@ -104,15 +104,17 @@ def _take_article_data(app, article_path, addendum, leave_keys):
                     article[key] = value
     except Exception as exc:
         article = None
-        app.logger.warning("\n".join([
-            "could not read article data",
-            article_path,
-            str(exc),
-        ]))
+        logger.error(
+            f"({__name__}._take_article_data) " + "\n".join([
+                "could not read article data",
+                article_path,
+                str(exc),
+            ])
+        )
     return article
 
 
-def _make_regular_response(app, answer, docs_dir):
+def _make_regular_response(logger, answer, docs_dir):
     response = []
 
     for item in _get_item_list(answer):
@@ -132,7 +134,7 @@ def _make_regular_response(app, answer, docs_dir):
             continue
 
         article = _take_article_data(
-            app,
+            logger,
             article_path,
             item if with_parts else None,
             [art_rank_key],
@@ -144,7 +146,7 @@ def _make_regular_response(app, answer, docs_dir):
 
 
 def _make_suggestion_response(
-    app, suggestion_article, suggestion_key, docs_dir
+    logger, suggestion_article, suggestion_key, docs_dir
 ):
     art_rank_key, art_rank = _get_article_rank(suggestion_article)
     article_path = _get_article_path(art_rank, docs_dir)
@@ -152,7 +154,7 @@ def _make_suggestion_response(
         return []
 
     article = _take_article_data(
-        app,
+        logger,
         article_path,
         suggestion_article,
         [art_rank_key, suggestion_key],
@@ -163,7 +165,7 @@ def _make_suggestion_response(
     return article if article is not None else []
 
 
-def form_response(app, answer, docs_dir):
+def form_response(logger, answer, docs_dir):
     """
     Provides response to user via:
     * taking LLM answer,
@@ -177,7 +179,7 @@ def form_response(app, answer, docs_dir):
     )
 
     if not is_suggestion:
-        return _make_regular_response(app, answer, docs_dir)
+        return _make_regular_response(logger, answer, docs_dir)
     return _make_suggestion_response(
-        app, suggestion_article, suggestion_key, docs_dir
+        logger, suggestion_article, suggestion_key, docs_dir
     )

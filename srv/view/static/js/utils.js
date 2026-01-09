@@ -7,9 +7,27 @@ function utilsToSubjectView(subjectLabel) {
     if (subjectLabel.length == 0) {
         return "";
     }
-    return (
-        subjectLabel.charAt(0).toUpperCase() + subjectLabel.slice(1)
-    ).replaceAll("_", " ");
+    let subjectParts = [];
+    subjectLabel.split("+").forEach(item => {
+        if (item.length != 0) {
+            subjectParts.push(
+                (item.charAt(0).toUpperCase() + item.slice(1))
+                .replaceAll("_", " ")
+            );
+        }
+    });
+    return subjectParts.join(" + ");
+};
+
+// determines whether the feed is based on several subjects
+function utilsIsFeedMulti(subjectLabel) {
+    if (subjectLabel == "all") {
+        return true;
+    }
+    if (subjectLabel.indexOf("+") > -1) {
+        return true;
+    }
+    return false;
 };
 
 // maximal length for a user query

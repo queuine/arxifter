@@ -5,10 +5,17 @@
 # because (some) items from this file are served to the frontend too.
 #
 
-[urls]
+[server]
 # where the arxifter web is served;
 # set it to "" if arxifter is served at the "/" path
 path_prefix = "/biorxiv"
+# it has to be set to the actual server spec
+# where the arxifter gets deployed;
+# the guests and query requests check it.
+# if it is set as an empty string,
+# the checking is not performed.
+#header_origin = "http://localhost:8000"
+header_origin = ""
 
 ["session"]
 # technical items for providing guest users
@@ -43,7 +50,7 @@ main_page = "../view/page_cdn.html"
 #main_page = "../view/page_local.html"
 static_dir = "../view/static/"
 
-[popup]
+[local]
 # to be set according to actual deployments
 back_name = "Arxifter"
 back_link = "https://arxifter.quadet.com"

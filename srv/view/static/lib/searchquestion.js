@@ -10,7 +10,7 @@ function SearchQuestion(props) {
     className: "search-question"
   }, /*#__PURE__*/React.createElement("div", {
     className: "search-question-label"
-  }, "feed subject:", /*#__PURE__*/React.createElement("span", {
+  }, utilsIsFeedMulti(props.content.subject) ? "feed subjects:" : "feed subject:", /*#__PURE__*/React.createElement("span", {
     className: "search-question-subject"
   }, utilsToSubjectView(props.content.subject))), /*#__PURE__*/React.createElement("div", {
     className: "search-question-query"

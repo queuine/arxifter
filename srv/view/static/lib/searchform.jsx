@@ -103,7 +103,7 @@ class SearchForm extends React.Component {
                 }
             );
 
-            const urlPrefix = getFabricUrls()["pathPrefix"];
+            const urlPrefix = getFabricServer()["pathPrefix"];
             const urlInfix = utilsGetQueryParts().join("/");
             const wsForm = (
                 (window.location.protocol == "https:") ? "wss:" : "ws:"

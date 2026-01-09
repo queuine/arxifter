@@ -162,7 +162,7 @@ function ArxifterPage() {
     postDict[clues["clueHid"]] = isLaborer;
     postDict[clues["clueStr"]] = clueStr;
     const postData = JSON.stringify(postDict);
-    const postUrl = [getFabricUrls()["pathPrefix"], utilsGetSessionParts().join("/")].join("/");
+    const postUrl = [getFabricServer()["pathPrefix"], utilsGetSessionParts().join("/")].join("/");
     fetch(postUrl, {
       method: 'post',
       body: postData,

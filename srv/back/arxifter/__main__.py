@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # arxifter: sifting through open archives
-# Copyright (c) 2025 Martin Saturka
+# Copyright (c) 2025-2026 Martin Saturka
 # Released under the MIT license.
 #
 """
@@ -10,6 +10,7 @@ Module for calling auxiliary tools:
 * for testing the configuration
 * for taking and indexing feeds
 * for pruning the past indexed feeds
+* for testing the feed parsing
 """
 
 import sys
@@ -21,6 +22,8 @@ from .setting import (
     COMMAND_CONFIG_TEST,
     COMMAND_FEEDS_INGEST,
     COMMAND_FEEDS_PRUNE,
+    COMMAND_TESTS,
+    COMMAND_TESTS_FEED_PARSING,
     ENV_CONF_PATH,
 )
 from .logging import (
@@ -89,6 +92,19 @@ def do_feeds_prune():
     return res
 
 
+def do_test_feed_parsing():
+    """
+    Tests the feed-parsing process
+    """
+    try:
+        from .tests import test_feed_parsing
+        res = test_feed_parsing()
+    except Exception as exc:
+        log_error(str(exc))
+        res = False
+    return res
+
+
 def do_help():
     """
     Writes how to use these arxifter tools.
@@ -107,6 +123,9 @@ def do_help():
         f"python -m arxifter {COMMAND_FEEDS} {COMMAND_FEEDS_PRUNE}",
         "    for pruning the past feeds (it is meant to be run by cron)",
         "    it needs to have the configuration env. variable set",
+        f"python -m arxifter {COMMAND_TESTS} {COMMAND_TESTS_FEED_PARSING}",
+        "    for testing the feed-parsing process (used during development)"
+        "    it needs to have the configuration env. variable set",
     ]))
 
 
@@ -116,7 +135,11 @@ if __name__ == "__main__":
         do_help()
         sys.exit(1)
 
-    if (sys.argv[1] not in [COMMAND_CONFIG, COMMAND_FEEDS]):
+    if (sys.argv[1] not in [
+        COMMAND_CONFIG,
+        COMMAND_FEEDS,
+        COMMAND_TESTS,
+    ]):
         log_error("unknown command")
         do_help()
         sys.exit(1)
@@ -132,6 +155,9 @@ if __name__ == "__main__":
                 sys.exit(0 if do_feeds_ingest() else 2)
             elif sys.argv[2] == COMMAND_FEEDS_PRUNE:
                 sys.exit(0 if do_feeds_prune() else 2)
+        elif sys.argv[1] == COMMAND_TESTS:
+            if sys.argv[2] == COMMAND_TESTS_FEED_PARSING:
+                sys.exit(0 if do_test_feed_parsing() else 2)
 
     log_error("wrong parameters")
     do_help()

@@ -12,7 +12,7 @@ function FormSubject(props) {
   const biorxivSubjectLabelDefault = biorxivSubjectLabels[props.usedSubject > -1 ? props.usedSubject : biorxivSubjectLabelsDefaultSystem > -1 ? biorxivSubjectLabelsDefaultSystem : 0];
   return /*#__PURE__*/React.createElement("label", null, /*#__PURE__*/React.createElement("span", {
     id: "form-subject-title"
-  }, "biorxiv subject:"), /*#__PURE__*/React.createElement("select", {
+  }, "biorxiv feed:"), /*#__PURE__*/React.createElement("select", {
     id: "form-subject-selection",
     name: subjectName,
     defaultValue: biorxivSubjectLabelDefault

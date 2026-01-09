@@ -23,7 +23,7 @@ class FormQuery extends React.Component {
         this.textareaRef.current?.focus();
       }
     };
-    this.queryLabel = "" + `Query on the last ${this.lastArticlesCount} articles ` + "(per subject) at bioRχiv";
+    this.queryLabel = "" + `Query on the last ${this.lastArticlesCount} articles ` + "(per feed) at bioRχiv";
     this.queryPlaceholder = ["", "Enter a search query for LLM to sift through bioRχiv feeds.", "It can be e.g. 'List all articles related to bacteria.'"].join("\n    ");
   }
   render() {

@@ -16,7 +16,10 @@ from .setting import (
     ARTICLE_KEY_RANK,
 )
 from .logging import log_error
-from .utils import get_doc_name
+from .utils import (
+    get_doc_name,
+    replace_marks,
+)
 
 
 def _get_link(entry):
@@ -82,7 +85,7 @@ def _get_date(entry):
 def _get_title(entry):
     title_val = None
     try:
-        title_val = str(entry["title"]).strip()
+        title_val = replace_marks(str(entry["title"]).strip())
     except Exception:
         title_val = None
 
@@ -118,7 +121,7 @@ def _get_abstract(entry):
     abstract_val = None
     for key in ["description", "summary"]:
         try:
-            abstract_val = str(entry[key]).strip()
+            abstract_val = replace_marks(str(entry[key]).strip())
             if abstract_val != "":
                 break
         except Exception:

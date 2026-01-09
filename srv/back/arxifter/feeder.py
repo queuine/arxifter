@@ -16,7 +16,6 @@ from .setting import (
     INFO_FILE_NAME,
     EMBED_MODEL_NAME_KEY,
     RSS_FEED_TAKE_SLEEP,
-    RSS_FEED_URL_BASE,
     ATTEMPT_COUNT_FEED,
     RSS_FEED_FILE_NAME,
     ENV_CONF_PATH,
@@ -25,18 +24,21 @@ from .logging import (
     log_debug,
     log_error,
 )
-from .utils import list_active_data_dir
+from .utils import (
+    list_active_data_dir,
+    subject_spec_to_feed_url,
+)
 from .config import get_conf
 from .parser import parse_feed_save_docs
 from .indexer import index_docs
 
 
-def _get_rss_feed_dir(data_dir, subject):
-    return os.path.join(data_dir, subject)
+def _get_rss_feed_dir(data_dir, subject_fs):
+    return os.path.join(data_dir, subject_fs)
 
 
-def _get_rss_feed_path(data_dir, subject):
-    return os.path.join(data_dir, subject, RSS_FEED_FILE_NAME)
+def _get_rss_feed_path(data_dir, subject_fs):
+    return os.path.join(data_dir, subject_fs, RSS_FEED_FILE_NAME)
 
 
 def _get_data_dir_perm_parts(current_dt):
@@ -73,9 +75,9 @@ def _prepare_data_dirs(conf, current_dt):
     )
     try:
         os.makedirs(data_dir, mode=NEW_DIRS_MODE, exist_ok=False)
-        for subject in conf["feeds"]["subjects"]["list"]:
+        for _, subject_fs in conf["feeds"]["subjects"]["catalog"].items():
             os.makedirs(
-                os.path.join(data_dir, subject),
+                os.path.join(data_dir, subject_fs),
                 mode=NEW_DIRS_MODE,
                 exist_ok=True
             )
@@ -88,16 +90,18 @@ def _prepare_data_dirs(conf, current_dt):
 
 def _take_feeds(conf, data_dir):
     got_error = False
-    for subject in conf["feeds"]["subjects"]["list"]:
-        feed_url = RSS_FEED_URL_BASE + subject
-        feed_path = _get_rss_feed_path(data_dir, subject)
+    for subject_spec, subject_fs in (
+        conf["feeds"]["subjects"]["catalog"].items()
+    ):
+        feed_url = subject_spec_to_feed_url(subject_spec)
+        feed_path = _get_rss_feed_path(data_dir, subject_fs)
         got_feed = False
         time_to_sleep = RSS_FEED_TAKE_SLEEP
         for attempt in range(ATTEMPT_COUNT_FEED):
             time.sleep(time_to_sleep)
             time_to_sleep *= 2
             if conf["debugging"]["feed_taking"]:
-                log_debug(f"taking {subject}: attempt #{attempt + 1}")
+                log_debug(f"taking {subject_spec}: attempt #{attempt + 1}")
             try:
                 with open(feed_path, "wb") as fh:
                     with urllib.request.urlopen(feed_url) as response:
@@ -115,8 +119,10 @@ def _take_feeds(conf, data_dir):
 
 def _parse_feeds(conf, data_dir):
     got_error = False
-    for subject in conf["feeds"]["subjects"]["list"]:
-        if not parse_feed_save_docs(_get_rss_feed_path(data_dir, subject)):
+    for _, subject_fs in conf["feeds"]["subjects"]["catalog"].items():
+        if not parse_feed_save_docs(
+            _get_rss_feed_path(data_dir, subject_fs),
+        ):
             got_error = True
             break
     return not got_error
@@ -124,8 +130,11 @@ def _parse_feeds(conf, data_dir):
 
 def _index_feeds(conf, data_dir):
     got_error = False
-    for subject in conf["feeds"]["subjects"]["list"]:
-        if not index_docs(conf, _get_rss_feed_dir(data_dir, subject)):
+    for _, subject_fs in conf["feeds"]["subjects"]["catalog"].items():
+        if not index_docs(
+            conf,
+            _get_rss_feed_dir(data_dir, subject_fs),
+        ):
             got_error = True
             break
     return not got_error

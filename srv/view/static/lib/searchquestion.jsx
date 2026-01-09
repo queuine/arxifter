@@ -11,7 +11,13 @@ function SearchQuestion(props) {
     return (
             <div className="search-question">
                 <div className="search-question-label">
-                    feed subject:
+                    {
+                        utilsIsFeedMulti(props.content.subject)
+                        ?
+                        "feed subjects:"
+                        :
+                        "feed subject:"
+                    }
                     <span className="search-question-subject">
                         {utilsToSubjectView(props.content.subject)}
                     </span>

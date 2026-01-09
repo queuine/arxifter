@@ -15,9 +15,9 @@ def _camelize(name):
     ])
 
 
-def _get_conf_urls(conf):
+def _get_conf_server(conf):
     return {
-        _camelize("path_prefix"): conf["urls"]["path_prefix"],
+        _camelize("path_prefix"): conf["server"]["path_prefix"],
     }
 
 
@@ -54,11 +54,11 @@ def _get_conf_answer(conf):
     }
 
 
-def _get_conf_popup(conf):
+def _get_conf_local(conf):
     return {
-        _camelize("back_name"): conf["popup"]["back_name"],
-        _camelize("back_link"): conf["popup"]["back_link"],
-        _camelize("note_text"): conf["popup"]["note_text"]["content"],
+        _camelize("back_name"): conf["local"]["back_name"],
+        _camelize("back_link"): conf["local"]["back_link"],
+        _camelize("note_text"): conf["local"]["note_text"]["content"],
     }
 
 
@@ -73,7 +73,7 @@ def _get_conf_ui(conf):
 
 def _get_conf_feeds(conf):
     return {
-        _camelize("subjects"): list(conf["feeds"]["subjects"]["list"]),
+        _camelize("subjects"): list(conf["feeds"]["subjects"]["catalog"]),
         _camelize("default_subject"): conf["feeds"]["default_subject"],
         _camelize("feed_size"): conf["feeds"]["feed_size"],
     }
@@ -110,12 +110,12 @@ def get_fabric_js(conf, prefix):
             "}",
             "",
         ]) for part, func in [
-            ["urls", _get_conf_urls],
+            ["server", _get_conf_server],
             ["session", _get_conf_session],
             ["handshake", _get_conf_handshake],
             ["query", _get_conf_query],
             ["answer", _get_conf_answer],
-            ["popup", _get_conf_popup],
+            ["local", _get_conf_local],
             ["ui", _get_conf_ui],
             ["feeds", _get_conf_feeds],
             ["llms", _get_conf_llms],

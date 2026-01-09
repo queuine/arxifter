@@ -90,7 +90,7 @@ class SearchForm extends React.Component {
         subject: subjectId,
         query: queryText
       });
-      const urlPrefix = getFabricUrls()["pathPrefix"];
+      const urlPrefix = getFabricServer()["pathPrefix"];
       const urlInfix = utilsGetQueryParts().join("/");
       const wsForm = window.location.protocol == "https:" ? "wss:" : "ws:";
       const wsUri = wsForm + window.location.host + [urlPrefix, urlInfix, subjectId].join("/");

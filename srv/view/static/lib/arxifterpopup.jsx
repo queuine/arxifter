@@ -12,7 +12,7 @@ class ArxifterPopup extends React.Component {
         this.closePopup = props.closePopup;
         this.setupGuestSession = props.setupGuestSession;
         this.idRemembered = props.getIdRemembered();
-        this.noteText = getFabricPopup()["noteText"];
+        this.noteText = getFabricLocal()["noteText"];
         this.withGuest = getFabricUsers()["withGuest"];
         this.sessionStates = {
             NO: 0,

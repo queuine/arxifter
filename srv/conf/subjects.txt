@@ -6,13 +6,12 @@ bioinformatics
 biophysics
 cancer_biology
 cell_biology
-clinical_trials
 developmental_biology
 ecology
-epidemiology
 evolutionary_biology
 genetics
 genomics
+genomics+bioinformatics
 immunology
 microbiology
 molecular_biology

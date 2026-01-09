@@ -40,7 +40,7 @@ def get_mocked_answer(conf, subject, to_explain):
             break
 
     if mock_file_name is None:
-        raise OSError("unknown subject")
+        raise OSError("unknown mocked subject")
 
     return Path(
         os.path.join(

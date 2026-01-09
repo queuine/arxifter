@@ -4,6 +4,7 @@ Taking, parsing and checking the configuration.
 """
 
 from pathlib import Path
+from urllib.parse import urlparse
 import os, tomllib
 
 from .setting import (
@@ -11,6 +12,7 @@ from .setting import (
     SESSION_CLUE_LEN_BASE,
     BIORXIV_FEED_SIZE,
 )
+from .utils import subject_spec_to_fs_name
 from .logging import log_error
 
 
@@ -82,15 +84,66 @@ def _read_subject_list(conf_part):
         subject_list = [
             line.strip() for line in fh if not line.startswith("#")
         ]
-    conf_part["list"] = [item for item in subject_list if item != ""]
-    if len(conf_part["list"]) == 0:
+    for item in subject_list:
+        if item.find(" ") > -1:
+            raise OSError(
+                "configuration: subject names cannot contain spaces: "
+                f"{item}"
+            )
+
+    conf_part["catalog"] = {
+        item: subject_spec_to_fs_name(item)
+        for item in subject_list if item != ""
+    }
+    if len(conf_part["catalog"]) == 0:
         raise OSError(
             "configuration: subject list (feeds/subjects) has to have "
             f"at least one item\n{str(conf_part["path"])}"
         )
 
 
+def _check_conf_header_origin(header_origin):
+    if header_origin == "":
+        return
+
+    origin_parts = urlparse(header_origin)
+
+    if origin_parts.scheme not in ["http", "https"]:
+        raise OSError(
+            "configuration: 'server'/'header_origin' "
+            "must either be empty or start with http(s)://\n"
+            f"it is: {header_origin}"
+        )
+
+    if (
+        (len(origin_parts.netloc) == 0)
+        or (len(origin_parts.path) != 0)
+        or (len(origin_parts.params) != 0)
+        or (len(origin_parts.query) != 0)
+        or (len(origin_parts.fragment) != 0)
+    ):
+        raise OSError(
+            "configuration: wrong 'server'/'header_origin' spec; "
+            "when filled, it must be http(s)://domain.name(:port)\n"
+            f"it is: {header_origin}"
+        )
+
+    try:
+        if origin_parts.hostname is None:
+            raise OSError("hostname missing")
+        if origin_parts.port is not None:
+            if type(origin_parts.port) is not int:
+                raise OSError("port is not integer")
+    except Exception as exc:
+        raise OSError(
+            "configuration: malformed 'server'/'header_origin' spec\n"
+            f"it is: {header_origin}"
+        ) from exc
+
+
 def _complete_conf(conf):
+    _check_conf_header_origin(conf["server"]["header_origin"])
+
     if (conf["session"]["clue_len"] % SESSION_CLUE_LEN_BASE) != 0:
         raise OSError(
             "configuration: 'session'/'clue_len' "
@@ -101,13 +154,13 @@ def _complete_conf(conf):
     conf["view"]["main_page"]["rendered"] = (
         conf["view"]["main_page"]["content"].replace(
             "{path_prefix}",
-            conf["urls"]["path_prefix"],
+            conf["server"]["path_prefix"],
         )
     )
 
     _check_conf_path_access(conf["view"]["static_dir"], is_dir=True)
 
-    _read_conf_file(conf["popup"]["note_text"])
+    _read_conf_file(conf["local"]["note_text"])
 
     _read_subject_list(conf["feeds"]["subjects"])
 
@@ -155,11 +208,11 @@ def _fill_conf(conf, conf_path):
     conf_raw = _read_conf_raw(conf_path)
     try:
         for part, itemlist in [
-            ["urls", ["path_prefix"]],
+            ["server", ["path_prefix", "header_origin"]],
             ["session", ["clue_vis", "clue_hid", "clue_str", "provided"]],
             ["query", ["query_text", "to_explain", "user_id", "is_guest"]],
             ["answer", ["llm_response", "sys_message"]],
-            ["popup", ["back_name", "back_link"]],
+            ["local", ["back_name", "back_link"]],
             ["ui", ["user_id", "to_explain", "subject_name"]],
             ["feeds", ["default_subject"]],
             ["llms", ["embed_model_name", "model_name"]],
@@ -169,7 +222,7 @@ def _fill_conf(conf, conf_path):
 
         for part, itemlist in [
             ["view", ["main_page", "static_dir"]],
-            ["popup", ["note_text"]],
+            ["local", ["note_text"]],
             ["feeds", ["subjects"]],
             ["data", ["storage_dir"]],
             ["prompts", ["plain", "explained"]],
@@ -270,13 +323,13 @@ def get_conf(conf_env_name):
     in the env. variable setting:ENV_CONF_PATH.
     """
     conf = {
-        "urls": {},
+        "server": {},
         "session": {},
         "handshake": {},
         "query": {},
         "answer": {},
         "view": {},
-        "popup": {},
+        "local": {},
         "ui": {},
         "feeds": {},
         "data": {},

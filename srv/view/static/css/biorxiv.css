@@ -248,6 +248,9 @@ body:has(#arxifter-page-popup[open]) {
 #form-subject-title {
     margin-right: 10px;
 }
+#form-subject-selection {
+    max-width: 300px;
+}
 .answer-item {
     margin-bottom: 10px;
 }

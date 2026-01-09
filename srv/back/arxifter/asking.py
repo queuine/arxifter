@@ -51,7 +51,9 @@ def _get_question_parts(conf, query_data):
     ]
 
 
-async def answer_query_inner(conf, app, run_sync, query_data, subject):
+async def answer_query_inner(
+    conf, logger, run_sync, query_data, subject_spec
+):
     """
     Processes the question on LLM:
     * takes/checks the required parameters,
@@ -61,11 +63,12 @@ async def answer_query_inner(conf, app, run_sync, query_data, subject):
     The LLM actions can be mocked instead of being put to LLM
     when it is set on in the configuration.
     """
-    if subject not in conf["feeds"]["subjects"]["list"]:
+    if subject_spec not in conf["feeds"]["subjects"]["catalog"]:
         return {
             "ok": False,
             "message": "unknown subject",
         }
+    subject_fs = conf["feeds"]["subjects"]["catalog"][subject_spec]
 
     got_params = False
     err_message = ""
@@ -74,15 +77,16 @@ async def answer_query_inner(conf, app, run_sync, query_data, subject):
             _get_question_parts(conf, query_data)
         )
         got_params = True
-        app.logger.info(" ".join([
+        logger.info(" ".join([
             f"query asked by {"guest" if is_guest else "user"}",
             f"to{"" if to_explain else " not"} get explained",
         ]))
-        app.logger.debug(
-            f"query:\n{query_text}\n"
-        )
+        if conf["debugging"]["llm_answers"]:
+            logger.debug(
+                f"query:\n{query_text}\n"
+            )
     except Exception as exc:
-        app.logger.info(f"wrong query params: {str(exc)}")
+        logger.info(f"wrong query params: {str(exc)}")
         err_message = "could not do the query"
         got_params = False
 
@@ -110,7 +114,7 @@ async def answer_query_inner(conf, app, run_sync, query_data, subject):
             raise OSError("no user found with the provided identifier")
         got_api_key = True
     except Exception as exc:
-        app.logger.info(f"an error occurred: {str(exc)}")
+        logger.info(f"cannot continue with the query: {str(exc)}")
         err_message = "the provided user is unkown"
         got_api_key = False
 
@@ -126,7 +130,7 @@ async def answer_query_inner(conf, app, run_sync, query_data, subject):
         if data_dir is None:
             raise OSError("no embedded feeds are availabble")
     except Exception as exc:
-        app.logger.warning(f"an error occurred: {str(exc)}")
+        logger.error(f"an error occurred: {str(exc)}")
         err_message = "could not do the query"
         data_dir = None
     if data_dir is None:
@@ -139,7 +143,7 @@ async def answer_query_inner(conf, app, run_sync, query_data, subject):
     time_loading_span = None
     try:
         time_loading_start = time.time()
-        embed_dir = os.path.join(data_dir, subject, VECTORS_SUBDIR)
+        embed_dir = os.path.join(data_dir, subject_fs, VECTORS_SUBDIR)
         llm_index = await run_sync(load_index)(
             conf, data_dir, embed_dir, api_key
         )
@@ -148,7 +152,7 @@ async def answer_query_inner(conf, app, run_sync, query_data, subject):
         if llm_index is None:
             raise OSError("could not load the embedded feeds")
     except Exception as exc:
-        app.logger.warning(f"an error occurred: {str(exc)}")
+        logger.error(f"an error occurred: {str(exc)}")
         err_message = "could not do the query"
         llm_index = None
 
@@ -163,7 +167,7 @@ async def answer_query_inner(conf, app, run_sync, query_data, subject):
     try:
         time_asking_start = time.time()
         if conf["mocking"]["to_mock"]:
-            llm_answer = get_mocked_answer(conf, subject, to_explain)
+            llm_answer = get_mocked_answer(conf, subject_fs, to_explain)
             if conf["mocking"]["mocking_delay"] > 0:
                 await asyncio.sleep(conf["mocking"]["mocking_delay"])
         else:
@@ -172,13 +176,14 @@ async def answer_query_inner(conf, app, run_sync, query_data, subject):
         time_asking_end = time.time()
         time_asking_span = time_asking_end - time_asking_start
         got_answer = True
-        app.logger.debug(" ".join([
-            f"answer in {time_loading_span} s (index loading),",
-            f"{time_asking_span} s (llm answering):",
+        logger.info(" ".join([
+            f"answer in {time_loading_span:.3f} s (index loading),",
+            f"{time_asking_span:.3f} s (llm answering):",
         ]))
-        app.logger.debug(llm_answer)
+        if conf["debugging"]["llm_answers"]:
+            logger.debug(llm_answer)
     except Exception as exc:
-        app.logger.warning(f"an error occurred: {str(exc)}")
+        logger.error(f"an error occurred: {str(exc)}")
         err_message = "could not do the query"
         got_answer = False
 
@@ -194,7 +199,7 @@ async def answer_query_inner(conf, app, run_sync, query_data, subject):
         parsed_answer = json.loads(str(llm_answer))
         has_parsed = True
     except Exception as exc:
-        app.logger.warning(f"could not parse the answer data: {str(exc)}")
+        logger.warning(f"could not parse the answer data: {str(exc)}")
         err_message = "problems with the query answer"
         has_parsed = False
 
@@ -208,11 +213,11 @@ async def answer_query_inner(conf, app, run_sync, query_data, subject):
     got_articles = False
     article_list = []
     try:
-        docs_dir = os.path.join(data_dir, subject, DOCUMENTS_SUBDIR)
-        article_list = form_response(app, parsed_answer, docs_dir)
+        docs_dir = os.path.join(data_dir, subject_fs, DOCUMENTS_SUBDIR)
+        article_list = form_response(logger, parsed_answer, docs_dir)
         got_articles = True
     except Exception as exc:
-        app.logger.warning(f"could not read the answer articles: {str(exc)}")
+        logger.warning(f"could not read the answer articles: {str(exc)}")
         err_message = "problems with the query answer"
         got_articles = False
 
