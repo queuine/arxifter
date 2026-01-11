@@ -32,9 +32,11 @@ function AnswerItem(props) {
     className: "answer-item-key"
   }, "notice:"), /*#__PURE__*/React.createElement("span", {
     className: "answer-item-notice"
-  }, utilsGetValue(item, warningKey))), utilsHasValue(item, "title") && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+  }, utilsGetValue(item, warningKey))), utilsHasValue(item, "title") && /*#__PURE__*/React.createElement("div", {
+    className: "answer-item-title-outer"
+  }, /*#__PURE__*/React.createElement("div", {
     className: "answer-item-key"
-  }, "title:"), /*#__PURE__*/React.createElement("span", {
+  }, "title:"), /*#__PURE__*/React.createElement("div", {
     className: "answer-item-title"
   }, utilsGetValue(item, "title"))), (utilsHasValue(item, "doi") || utilsHasValue(item, "date")) && /*#__PURE__*/React.createElement(AnswerItemDOI, {
     content: item

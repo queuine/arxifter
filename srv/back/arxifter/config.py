@@ -5,11 +5,13 @@ Taking, parsing and checking the configuration.
 
 from pathlib import Path
 from urllib.parse import urlparse
-import os, tomllib
+import os, tomllib, string
 
 from .setting import (
+    CONFIG_OTHER_LETTERS,
     NEW_DIRS_MODE,
     SESSION_CLUE_LEN_BASE,
+    MAX_RECALL_SEARCHES_COUNT,
     BIORXIV_FEED_SIZE,
 )
 from .utils import subject_spec_to_fs_name
@@ -160,7 +162,13 @@ def _complete_conf(conf):
 
     _check_conf_path_access(conf["view"]["static_dir"], is_dir=True)
 
-    _read_conf_file(conf["local"]["note_text"])
+    _read_conf_file(conf["local"]["note_users"])
+
+    if conf["ui"]["recall_searches"] > MAX_RECALL_SEARCHES_COUNT:
+        raise OSError(
+            "configuration: 'ui'/'recall_searches' "
+            f"has to at most {MAX_RECALL_SEARCHES_COUNT}"
+        )
 
     _read_subject_list(conf["feeds"]["subjects"])
 
@@ -209,11 +217,7 @@ def _fill_conf(conf, conf_path):
     try:
         for part, itemlist in [
             ["server", ["path_prefix", "header_origin"]],
-            ["session", ["clue_vis", "clue_hid", "clue_str", "provided"]],
-            ["query", ["query_text", "to_explain", "user_id", "is_guest"]],
-            ["answer", ["llm_response", "sys_message"]],
-            ["local", ["back_name", "back_link"]],
-            ["ui", ["user_id", "to_explain", "subject_name"]],
+            ["local", ["back_name", "back_link", "back_title"]],
             ["feeds", ["default_subject"]],
             ["llms", ["embed_model_name", "model_name"]],
         ]:
@@ -221,8 +225,28 @@ def _fill_conf(conf, conf_path):
                 conf[part][item] = str(conf_raw[part][item])
 
         for part, itemlist in [
+            ["session", ["clue_vis", "clue_hid", "clue_str", "provided"]],
+            ["query", ["query_text", "to_explain", "user_id", "is_guest"]],
+            ["answer", ["llm_response", "sys_message"]],
+            ["ui", ["user_id", "storage_prefix"]],
+        ]:
+            for item in itemlist:
+                conf[part][item] = str(conf_raw[part][item])
+                for c in list(conf[part][item]):
+                    if (
+                        (c not in string.ascii_letters)
+                        and (c not in string.digits)
+                        and (c not in CONFIG_OTHER_LETTERS)
+                    ):
+                        raise OSError(
+                            f"configuration: {part}/{item} has to be "
+                            "a string of ascii letters, digits and/or the "
+                            f"{CONFIG_OTHER_LETTERS} characters"
+                        )
+
+        for part, itemlist in [
             ["view", ["main_page", "static_dir"]],
-            ["local", ["note_text"]],
+            ["local", ["note_users"]],
             ["feeds", ["subjects"]],
             ["data", ["storage_dir"]],
             ["prompts", ["plain", "explained"]],
@@ -239,6 +263,7 @@ def _fill_conf(conf, conf_path):
                 }
 
         for part, itemlist in [
+            ["local", ["note_html"]],
             ["data", ["pruning"]],
             ["users", ["with_guest"]],
             ["mocking", ["to_mock"]],
@@ -252,7 +277,7 @@ def _fill_conf(conf, conf_path):
                     )
 
         for part, itemlist in [
-            ["ui", ["retain"]],
+            ["ui", ["retain_user", "recall_searches"]],
             ["mocking", ["mocking_delay"]],
         ]:
             for item in itemlist:

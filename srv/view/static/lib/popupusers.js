@@ -5,13 +5,13 @@
 
 const React = window.React ?? (await import('react'));
 const ReactDOM = window.ReactDOM ?? (await import('react-dom'));
-class ArxifterPopup extends React.Component {
+class PopupUsers extends React.Component {
   constructor(props) {
     super(props);
     this.closePopup = props.closePopup;
     this.setupGuestSession = props.setupGuestSession;
     this.idRemembered = props.getIdRemembered();
-    this.noteText = getFabricLocal()["noteText"];
+    this.noteText = getFabricLocal()["noteUsers"];
     this.withGuest = getFabricUsers()["withGuest"];
     this.sessionStates = {
       NO: 0,
@@ -23,7 +23,7 @@ class ArxifterPopup extends React.Component {
     this.state = {
       userId: this.idRemembered,
       toRemember: this.idRemembered ? true : false,
-      asGuest: false,
+      asGuest: props.getIsGuest(),
       hasAgreed: false,
       isLaborer: false,
       guestId: "",
@@ -60,20 +60,30 @@ class ArxifterPopup extends React.Component {
         sessionState: val
       });
     };
+    this.resetSession = () => {
+      this.setSessionState(this.sessionStates.NO);
+      if (this.agreeRef.current?.checked) {
+        this.agreeRef.current?.click();
+      }
+    };
   }
   render() {
     return /*#__PURE__*/React.createElement("div", {
       open: true,
-      id: "arxifter-popup"
+      className: "arxifter-popup"
     }, /*#__PURE__*/React.createElement("div", {
-      id: "arxifter-popup-top"
-    }, this.noteText), /*#__PURE__*/React.createElement("div", {
-      id: "arxifter-popup-form"
+      id: "popup-users-top"
+    }, getFabricLocal()["noteHtml"] ? /*#__PURE__*/React.createElement("span", {
+      dangerouslySetInnerHTML: {
+        __html: this.noteText
+      }
+    }) : this.noteText), /*#__PURE__*/React.createElement("div", {
+      id: "popup-users-form"
     }, /*#__PURE__*/React.createElement("button", {
-      id: "arxifter-popup-form-user",
+      id: "popup-users-form-user",
       title: this.state.asGuest ? "Click to switch to the regular-user mode." : "Fill in the user id.",
-      htmlFor: "arxifter-popup-input-user",
-      className: this.state.asGuest ? "arxifter-popup-form-label " + "arxifter-popup-form-label-that" : "arxifter-popup-form-label " + "arxifter-popup-form-label-this",
+      htmlFor: "popup-users-input-user",
+      className: this.state.asGuest ? "popup-users-form-label " + "popup-users-form-label-that" : "popup-users-form-label " + "popup-users-form-label-this",
       onClick: e => {
         const currentAsGuest = this.state.asGuest;
         this.setState({
@@ -86,7 +96,8 @@ class ArxifterPopup extends React.Component {
     }, "User id"), /*#__PURE__*/React.createElement("input", {
       type: "password",
       size: "32",
-      id: "arxifter-popup-input-user",
+      className: this.state.asGuest && "popup-users-form-label-invisible",
+      id: "popup-users-input-user",
       ref: this.inputRef,
       autofocus: this.state.asGuest ? 'false' : 'true',
       disabled: this.state.asGuest ? true : false,
@@ -98,7 +109,7 @@ class ArxifterPopup extends React.Component {
       }
     }), /*#__PURE__*/React.createElement("div", null), /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
-      id: "arxifter-popup-checkbox-remember",
+      id: "popup-users-checkbox-remember",
       disabled: this.state.asGuest ? true : false,
       checked: this.state.toRemember,
       onChange: e => {
@@ -107,14 +118,14 @@ class ArxifterPopup extends React.Component {
         });
       }
     }), /*#__PURE__*/React.createElement("label", {
-      htmlFor: "arxifter-popup-checkbox-remember",
-      className: this.state.asGuest ? "arxifter-popup-form-label-inner " + "arxifter-popup-form-label-disabled" : "arxifter-popup-form-label-inner"
+      htmlFor: "popup-users-checkbox-remember",
+      className: this.state.asGuest ? "popup-users-form-label-inner " + "popup-users-form-label-disabled" : "popup-users-form-label-inner"
     }, "remember id"), this.withGuest && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-      id: "arxifter-popup-separator"
+      id: "popup-users-separator"
     }, /*#__PURE__*/React.createElement("hr", null)), /*#__PURE__*/React.createElement("button", {
-      id: "arxifter-popup-form-guest",
+      id: "popup-users-form-guest",
       title: this.state.asGuest ? "Agree to the evaluation-only use." : "Click to switch to the guest-user mode.",
-      className: this.state.asGuest ? "arxifter-popup-form-label " + "arxifter-popup-form-label-this" : "arxifter-popup-form-label " + "arxifter-popup-form-label-that",
+      className: this.state.asGuest ? "popup-users-form-label " + "popup-users-form-label-this" : "popup-users-form-label " + "popup-users-form-label-that",
       onClick: e => {
         const currentAsGuest = this.state.asGuest;
         this.setState({
@@ -126,7 +137,7 @@ class ArxifterPopup extends React.Component {
       }
     }, "Guest"), /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
-      id: "arxifter-popup-checkbox-guest-agrees",
+      id: "popup-users-checkbox-guest-agrees",
       ref: this.agreeRef,
       autofocus: this.state.asGuest ? 'true' : 'false',
       disabled: this.state.asGuest ? false : true,
@@ -137,13 +148,13 @@ class ArxifterPopup extends React.Component {
         this.setupGuestSession(e.target.checked);
       }
     }), /*#__PURE__*/React.createElement("label", {
-      htmlFor: "arxifter-popup-checkbox-guest-agrees",
-      className: this.state.asGuest ? "arxifter-popup-form-label-inner" : "arxifter-popup-form-label-inner " + "arxifter-popup-form-label-disabled"
+      htmlFor: "popup-users-checkbox-guest-agrees",
+      className: this.state.asGuest ? "popup-users-form-label-inner" : "popup-users-form-label-inner " + "popup-users-form-label-disabled"
     }, "I agree to evaluation use."), /*#__PURE__*/React.createElement("div", {
-      id: "arxifter-popup-empty-filler"
+      id: "popup-users-empty-filler"
     }, /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
-      id: "arxifter-popup-checkbox-is-laborer",
+      id: "popup-users-checkbox-is-laborer",
       disabled: this.state.asGuest ? false : true,
       onChange: e => {
         this.setState({
@@ -151,16 +162,16 @@ class ArxifterPopup extends React.Component {
         });
       }
     })), /*#__PURE__*/React.createElement("div", {
-      id: "arxifter-popup-session-notice",
-      className: this.state.asGuest ? "arxifter-popup-form-label-inner" : "arxifter-popup-form-label-inner " + "arxifter-popup-form-label-disabled"
-    }, this.state.sessionState == this.sessionStates.NO && "session is not set", this.state.sessionState == this.sessionStates.OK && "session is set up", this.state.sessionState == this.sessionStates.KO && "session set up failed"))), /*#__PURE__*/React.createElement("div", {
-      id: "arxifter-popup-bottom"
+      id: "popup-users-session-notice",
+      className: this.state.asGuest ? "popup-users-form-label-inner" : "popup-users-form-label-inner " + "popup-users-form-label-invisible"
+    }, this.state.sessionState == this.sessionStates.NO && "guest session is not set", this.state.sessionState == this.sessionStates.OK && "guest session is set up", this.state.sessionState == this.sessionStates.KO && "guest session set up failed"))), /*#__PURE__*/React.createElement("div", {
+      className: "arxifter-popup-bottom"
     }, /*#__PURE__*/React.createElement("button", {
-      id: "arxifter-popup-close",
+      className: "arxifter-popup-close",
       onClick: e => {
         this.closePopup();
       }
     }, "Close")));
   }
 }
-export { ArxifterPopup as default };
+export { PopupUsers as default };

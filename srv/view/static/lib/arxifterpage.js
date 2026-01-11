@@ -7,14 +7,19 @@
 const React = window.React ?? (await import('react'));
 const ReactDOM = window.ReactDOM ?? (await import('react-dom'));
 import ArxifterTop from "arxifter/biorxiv/arxiftertop.js";
-import ArxifterPopup from "arxifter/biorxiv/arxifterpopup.js";
+import PopupSetting from "arxifter/biorxiv/popupsetting.js";
+import PopupUsers from "arxifter/biorxiv/popupusers.js";
 import SearchForm from "arxifter/biorxiv/searchform.js";
 import SearchList from "arxifter/biorxiv/searchlist.js";
 function ArxifterPage() {
   let searchFormRef = React.createRef();
   let searchesRef = React.createRef();
-  let dialogRef = React.createRef();
-  let popupRef = React.createRef();
+  let dialogSettingRef = React.createRef();
+  let popupSettingRef = React.createRef();
+  let dialogUsersRef = React.createRef();
+  let popupUsersRef = React.createRef();
+
+  // adds new queries and answers to the search list
   const appendSearch = (isAnswer, payload) => {
     if (isAnswer) {
       const fabricAnswer = getFabricAnswer();
@@ -29,30 +34,71 @@ function ArxifterPage() {
       } catch (e) {
         data_content = payload;
       }
-      searchesRef.current.addSearch(true, data_content);
+      try {
+        if (payload[utilsGetSessionGoneKey()] === true) {
+          popupUsersRef.current?.resetSession();
+        }
+      } catch (e) {}
+      searchesRef.current?.addSearch(true, data_content);
+      searchesRef.current?.saveLastSearches();
     } else {
-      searchesRef.current.addSearch(false, payload);
+      searchesRef.current?.addSearch(false, payload);
     }
   };
+
+  // prefix for item names stored in browser local storage
+  const getStoragePrefix = () => {
+    return getFabricUi()["storagePrefix"];
+  };
+
+  // local storage: setting for whether last searches should be saved
+  const getSaveLastSearches = () => {
+    return storageLoadSetupSaveSearches(getStoragePrefix());
+  };
+  const setSaveLastSearches = toSave => {
+    storageSaveSetupSaveSearches(getStoragePrefix(), toSave);
+    searchesRef.current?.setToSaveLastSearches(toSave);
+  };
+  const saveLastSearches = toSave => {
+    searchesRef.current?.saveLastSearches(toSave);
+  };
+
+  // functions for taking the current user
   const hasUserSet = () => {
-    return popupRef.current?.hasUserSet();
+    return popupUsersRef.current?.hasUserSet();
   };
   const isUserGuest = () => {
-    return popupRef.current?.isUserGuest();
+    return popupUsersRef.current?.isUserGuest();
   };
   const getUser = () => {
-    return popupRef.current?.getUser();
+    return popupUsersRef.current?.getUser();
   };
-  const openPopup = (followSearch = false) => {
-    dialogRef.current?.showModal();
+
+  // open/close the setting popup
+  const openPopupSetting = () => {
+    dialogSettingRef.current?.showModal();
+  };
+  const closePopupSetting = () => {
+    dialogSettingRef.current?.close();
+  };
+
+  // open/close the users popup
+  const openPopupUsers = (followSearch = false) => {
+    dialogUsersRef.current?.showModal();
     searchFormRef.current?.setFollowup(followSearch);
   };
-  const closePopup = () => {
-    dialogRef.current?.close();
+  const closePopupUsers = () => {
+    dialogUsersRef.current?.close();
   };
-  const followPopup = () => {
+  // actions to be done after the popup is closed;
+  // it is used for starting a sifting if the users-popup
+  // was opened b/c the user had neither a user id filled in,
+  // nor a guest session set up;
+  const followPopupUsers = () => {
     searchFormRef.current?.followSubmit();
   };
+
+  // saving/loading the user id to/from cookies
   const getIdRemembered = () => {
     const cookieName = getFabricUi()["userId"];
     const cookieValue = utilsGetCookieValue(cookieName);
@@ -63,7 +109,7 @@ function ArxifterPage() {
     // if here, some user id was stored;
     // if the id should be remembered, it gets auto-prolonged;
     // otherwise it gets auto-deleted;
-    const cookieExp = getFabricUi()["retain"];
+    const cookieExp = getFabricUi()["retain_user"];
     if (cookieExp <= 0) {
       // it gets deleted and forgotten;
       //utilsSetCookieValue(cookieName, "", cookieExp);
@@ -76,12 +122,12 @@ function ArxifterPage() {
   };
   const setIdRemembering = () => {
     const cookieName = getFabricUi()["userId"];
-    const cookieExp = getFabricUi()["retain"];
+    const cookieExp = getFabricUi()["retain_user"];
     if (cookieExp <= 0) {
       utilsDelCookieValue(cookieName);
       return;
     }
-    const rememberId = popupRef.current?.getRememberId();
+    const rememberId = popupUsersRef.current?.getRememberId();
     const cookieValue = rememberId ? rememberId["userId"] : "";
     const toRemember = rememberId ? rememberId["toRemember"] : false;
     if (!toRemember || cookieValue == "") {
@@ -90,41 +136,49 @@ function ArxifterPage() {
     }
     utilsSetCookieValue(cookieName, cookieValue, cookieExp);
   };
+
+  // local storage: setting for whether the user is supposed to be a guest
+  const getIsGuest = () => {
+    return storageLoadSetupIsGuest(getStoragePrefix());
+  };
+  const setIsGuest = () => {
+    return storageSaveSetupIsGuest(getStoragePrefix(), isUserGuest());
+  };
+
+  // actions to be done when the users-popup gets closed
+  const onPopupUsersClosed = () => {
+    setIsGuest();
+    setIdRemembering();
+    followPopupUsers();
+  };
+
+  // local storage: setting for whether LLM should explain its choices
   const getExplaining = () => {
-    const cookieName = getFabricUi()["toExplain"];
-    return utilsGetCookieValue(cookieName) == "no" ? false : true;
+    return storageLoadSetupExplaining(getStoragePrefix());
   };
   const setExplaining = toExplain => {
-    const cookieName = getFabricUi()["toExplain"];
-    const cookieExp = getFabricUi()["retain"];
-    if (cookieExp <= 0) {
-      utilsDelCookieValue(cookieName);
-      return;
-    }
-    const cookieValue = toExplain ? "yes" : "no";
-    utilsSetCookieValue(cookieName, cookieValue, cookieExp);
+    storageSaveSetupExplaining(getStoragePrefix(), toExplain);
   };
+
+  // local storage: setting for the default feed to be sifted through
   const getUsedSubject = () => {
-    const cookieName = getFabricUi()["subjectName"];
-    const usedSubject = utilsGetCookieValue(cookieName);
+    const usedSubject = storageLoadSetupSiftedFeed(getStoragePrefix());
     if (usedSubject == "") {
       return -1;
     }
     return getFabricFeeds()["subjects"].indexOf(usedSubject);
   };
   const setUsedSubject = subjectId => {
-    const cookieName = getFabricUi()["subjectName"];
-    const cookieExp = getFabricUi()["retain"];
-    if (cookieExp <= 0) {
-      utilsDelCookieValue(cookieName);
-      return;
-    }
-    utilsSetCookieValue(cookieName, subjectId, cookieExp);
+    storageSaveSetupSiftedFeed(getStoragePrefix(), subjectId);
   };
+
+  // additional actions to be done when a query is asked
   const setOnSearch = (subjectId, toExplain) => {
     setUsedSubject(subjectId);
     setExplaining(toExplain);
   };
+
+  // auxiliary function for setting guest sessions
   const annealStrings = (toProcess, toAlign) => {
     const toAlignUse = toAlign.repeat(Math.ceil(toProcess.length / toAlign.length));
     let result = [];
@@ -138,20 +192,20 @@ function ArxifterPage() {
 
   // setting up the guest session
   const setupGuestSession = hasAgreed => {
-    if (!popupRef.current) {
+    if (!popupUsersRef.current) {
       return;
     }
-    const sessionNO = popupRef.current?.sessionStates.NO;
-    const sessionOK = popupRef.current?.sessionStates.OK;
-    const sessionKO = popupRef.current?.sessionStates.KO;
+    const sessionNO = popupUsersRef.current?.sessionStates.NO;
+    const sessionOK = popupUsersRef.current?.sessionStates.OK;
+    const sessionKO = popupUsersRef.current?.sessionStates.KO;
     if (!getFabricUsers()["withGuest"]) {
-      popupRef.current?.setSessionState(sessionNO);
+      popupUsersRef.current?.setSessionState(sessionNO);
       return;
     }
-    const asGuest = popupRef?.current.state.asGuest;
-    const isLaborer = popupRef?.current.state.isLaborer;
+    const asGuest = popupUsersRef.current?.state.asGuest;
+    const isLaborer = popupUsersRef.current?.state.isLaborer;
     if (asGuest !== true || hasAgreed !== true) {
-      popupRef.current?.setSessionState(sessionNO);
+      popupUsersRef.current?.setSessionState(sessionNO);
       return;
     }
     const randHex = utilsRandomizeHex();
@@ -178,36 +232,48 @@ function ArxifterPage() {
     }).then(result => {
       const resKey = clues["provided"];
       if (!result) {
-        popupRef.current?.setSessionState(sessionKO);
+        popupUsersRef.current?.setSessionState(sessionKO);
       } else if (result[resKey]?.length > 0) {
-        popupRef.current?.setGuestId(annealStrings(result[resKey][0], clueStr));
-        popupRef.current?.setSessionState(sessionOK);
+        popupUsersRef.current?.setGuestId(annealStrings(result[resKey][0], clueStr));
+        popupUsersRef.current?.setSessionState(sessionOK);
       } else {
-        popupRef.current?.setSessionState(sessionKO);
+        popupUsersRef.current?.setSessionState(sessionKO);
       }
     }).catch(error => {
-      popupRef.current?.setSessionState(sessionKO);
+      popupUsersRef.current?.setSessionState(sessionKO);
     });
   };
   return /*#__PURE__*/React.createElement("div", {
     id: "arxifter-page"
   }, /*#__PURE__*/React.createElement(ArxifterTop, {
-    openPopup: openPopup
+    openPopupSetting: openPopupSetting,
+    openPopupUsers: openPopupUsers
   }), /*#__PURE__*/React.createElement("dialog", {
-    ref: dialogRef,
+    ref: dialogSettingRef,
+    onCancel: () => {},
+    className: "arxifter-page-popup"
+  }, /*#__PURE__*/React.createElement(PopupSetting, {
+    ref: popupSettingRef,
+    getSaveLastSearches: getSaveLastSearches,
+    setSaveLastSearches: setSaveLastSearches,
+    saveLastSearches: saveLastSearches,
+    closePopup: () => {
+      closePopupSetting();
+    }
+  })), /*#__PURE__*/React.createElement("dialog", {
+    ref: dialogUsersRef,
     onCancel: () => {
-      setIdRemembering();
-      followPopup();
+      onPopupUsersClosed();
     },
-    id: "arxifter-page-popup"
-  }, /*#__PURE__*/React.createElement(ArxifterPopup, {
-    ref: popupRef,
+    className: "arxifter-page-popup"
+  }, /*#__PURE__*/React.createElement(PopupUsers, {
+    ref: popupUsersRef,
     getIdRemembered: getIdRemembered,
+    getIsGuest: getIsGuest,
     setupGuestSession: setupGuestSession,
     closePopup: () => {
-      closePopup();
-      setIdRemembering();
-      followPopup();
+      closePopupUsers();
+      onPopupUsersClosed();
     }
   })), /*#__PURE__*/React.createElement(SearchForm, {
     ref: searchFormRef,
@@ -218,9 +284,12 @@ function ArxifterPage() {
     hasUserSet: hasUserSet,
     isUserGuest: isUserGuest,
     getUser: getUser,
-    openPopup: openPopup
+    openPopupUsers: openPopupUsers
   }), /*#__PURE__*/React.createElement(SearchList, {
-    ref: searchesRef
+    ref: searchesRef,
+    searchList: storageLoadSearches(getStoragePrefix()),
+    getSaveLastSearches: getSaveLastSearches,
+    getStoragePrefix: getStoragePrefix
   }));
 }
 export { ArxifterPage as default };

@@ -12,7 +12,9 @@ function FormExplained(props) {
     );
 
     return (
-        <label>
+        <label
+            title="whether LLM should explain its choices"
+        >
             <input
                 type="checkbox"
                 name={checkName}

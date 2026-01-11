@@ -58,16 +58,18 @@ def _get_conf_local(conf):
     return {
         _camelize("back_name"): conf["local"]["back_name"],
         _camelize("back_link"): conf["local"]["back_link"],
-        _camelize("note_text"): conf["local"]["note_text"]["content"],
+        _camelize("back_title"): conf["local"]["back_title"],
+        _camelize("note_users"): conf["local"]["note_users"]["content"],
+        _camelize("note_html"): conf["local"]["note_html"],
     }
 
 
 def _get_conf_ui(conf):
     return {
-        _camelize("retain"): conf["ui"]["retain"],
         _camelize("user_id"): conf["ui"]["user_id"],
-        _camelize("to_explain"): conf["ui"]["to_explain"],
-        _camelize("subject_name"): conf["ui"]["subject_name"],
+        _camelize("retain_user"): conf["ui"]["retain_user"],
+        _camelize("storage_prefix"): conf["ui"]["storage_prefix"],
+        _camelize("recall_searches"): conf["ui"]["recall_searches"],
     }
 
 

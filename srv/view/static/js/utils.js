@@ -60,6 +60,11 @@ function utilsGetWarningKey() {
     return "warning";
 };
 
+// key for expired session (of a guest)
+function utilsGetSessionGoneKey() {
+    return "expired";
+};
+
 // item keys commonly used for explanations by LLM
 function utilsGetReasoningKeys() {
     return [
@@ -71,8 +76,8 @@ function utilsGetReasoningKeys() {
 };
 
 // checking a string form of an item (e.g. in LLM answers)
-function utilsIsString(key) {
-    return ((typeof key === "string") || (key instanceof String));
+function utilsIsString(val) {
+    return ((typeof val === "string") || (val instanceof String));
 };
 
 // checking a dict form of an item (e.g. in LLM answers)
@@ -82,6 +87,11 @@ function utilsIsDict(item) {
         && (item !== null)
         && (item.constructor == Object)
     );
+};
+
+// checking an array form of an item (e.g. in LLM answers)
+function utilsIsArray(item) {
+    return Array.isArray(item);
 };
 
 // finding exact forms of items in LLM answers
@@ -200,4 +210,10 @@ function utilsRandomizeHex() {
         }
     }
     return outHex;
+};
+
+// generates ID that is unique within a search list only
+function utilsGenSearchID(rank) {
+    const randPart = Math.round(Math.random() * 1e9);
+    return `search-${rank}-${Date.now()}-${randPart}`;
 };

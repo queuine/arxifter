@@ -52,17 +52,27 @@ static_dir = "../view/static/"
 
 [local]
 # to be set according to actual deployments
+# the top-left link
 back_name = "Arxifter"
 back_link = "https://arxifter.quadet.com"
-note_text = "about.txt"
+back_title = "to Arxifter home page"
+# the text at the top of the user-popup
+note_users = "about.txt"
+# whether the note_text file should be rendered as html;
+# if not, it is rendered as plain text
+note_html = false
 
 [ui]
-# for cookies that are used for recalling within UI;
-# no cookie is read at the server
-retain = 30
-user_id = "arxifter_userid"
-to_explain = "arxifter_explaining"
-subject_name = "arxifter_biorxiv_subject"
+# for cookie that keeps user id if user asks for it
+user_id = "arxifter.userid"
+# how many days that cookie should be kept;
+# it gets auto-renewed if the user uses arxifter meanwhile
+retain_user = 30
+# name prefix for items stored at browser local storage
+storage_prefix = "arxifter.biorxiv"
+# how many searches can get stored (in browser);
+# the searches are stored by default, but users can disallow it
+recall_searches = 20
 
 [feeds]
 # if a deployment is to be used for a subset of feeds only,

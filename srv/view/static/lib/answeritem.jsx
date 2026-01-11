@@ -54,11 +54,11 @@ function AnswerItem(props) {
         {
             utilsHasValue(item, "title")
             &&
-            <div>
-                <span className="answer-item-key">title:</span>
-                <span className="answer-item-title">
+            <div className="answer-item-title-outer">
+                <div className="answer-item-key">title:</div>
+                <div className="answer-item-title">
                     {utilsGetValue(item, "title")}
-                </span>
+                </div>
             </div>
         }
         {

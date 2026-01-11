@@ -32,6 +32,7 @@ COMMAND_TESTS_FEED_PARSING = "feed-parsing"
 # general use
 TRUTH_VALUES_STR = ["1", "y", "yes", "t", "true", "truth", "on", "ok"]
 FALSE_VALUES_STR = ["0", "n", "no", "f", "false", "untrue", "off", "ko"]
+REPLACEMENT_CHAR = "□"
 
 # answers from LLM
 ARTICLE_KEY_RANK = "artnum"
@@ -56,7 +57,8 @@ ACTIVE_DATA_DIR_MAKING = "%Y_%m%d_%H%M"
 ACTIVE_DATA_DIR_LISTING = re.compile('^[\\d]{4}_[\\d]{4}_[\\d]{4}$')
 ATTEMPT_COUNT_DATA_DIR = 3
 
-# config for frontend
+# config, incl. its presentation to frontend
+CONFIG_OTHER_LETTERS = [".", "_", "-"]
 JS_FABRIC_PREFIX = "get_fabric_"
 INDENT_SIZE = 4
 
@@ -65,6 +67,7 @@ INFO_FILE_NAME = "info.json"
 EMBED_MODEL_NAME_KEY = "embed_model_name"
 
 # handling guest users
+SESSION_EXPIRED_KEY = "expired"
 GUEST_ID_LENGTH = 32
 HEXDIGITS = "0123456789abcdef"
 HEXDIGITS_REV = "".join(reversed(list(HEXDIGITS)))
@@ -86,8 +89,10 @@ RSS_FEED_TAKE_SLEEP = 15
 RSS_FEED_URL_BASE = "https://connect.biorxiv.org/biorxiv_xml.php?subject="
 RSS_FEED_FILE_NAME = "feed.rss"
 
-# parsing the feeds
+# config for UI and parsing the feeds
+MAX_RECALL_SEARCHES_COUNT = 100
 BIORXIV_FEED_SIZE = 30
+BIORXIV_FEED_MINIMAL_SIZE = 20
 BIORXIV_DOI_START = "10.64898"
 BIORXIV_DOI_ENDS = ["v", "?"]
 

@@ -120,10 +120,16 @@ def _take_feeds(conf, data_dir):
 def _parse_feeds(conf, data_dir):
     got_error = False
     for _, subject_fs in conf["feeds"]["subjects"]["catalog"].items():
-        if not parse_feed_save_docs(
-            _get_rss_feed_path(data_dir, subject_fs),
-        ):
+        try:
+            if not parse_feed_save_docs(
+                _get_rss_feed_path(data_dir, subject_fs),
+            ):
+                got_error = True
+                log_error(f"could not parse a feed: {subject_fs}")
+                break
+        except Exception as exc:
             got_error = True
+            log_error(f"feed parsing failed on {subject_fs}:\n" + str(exc))
             break
     return not got_error
 

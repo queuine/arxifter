@@ -24,6 +24,7 @@ from arxifter.setting import (
     HEXDIGITS,
     HEXDIGITS_REV,
     SESSION_CLUE_LEN_BASE,
+    SESSION_EXPIRED_KEY,
 )
 from arxifter.utils import origin_spec_to_parts
 from arxifter.config import get_conf
@@ -290,6 +291,8 @@ async def answer_query(subject_spec):
                 res["answer"] if res["ok"] else [res["message"]]
             ),
         }
+        if res.get(SESSION_EXPIRED_KEY, False):
+            sift_response[SESSION_EXPIRED_KEY] = True
 
         await websocket.send_json(
             **sift_response,

@@ -10,24 +10,74 @@ import SearchAnswer from "arxifter/biorxiv/searchanswer.js";
 class SearchList extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      searchList: [],
-      endRank: -1
+    {
+      const iniSearchList = props.searchList ?? [];
+      this.state = {
+        toSaveLastSearches: props.getSaveLastSearches(),
+        searchList: iniSearchList,
+        // the same value of rankForSearchID can be used
+        // for making a search ID of two different searches
+        // if the searches do not come in the same ms
+        // (even within-ms IDs should end up being different);
+        // thus doing it in a way that requires a page reload
+        // to have a possibility for such a situation,
+        // since expecting that the combination of user action
+        // within the UI and page reload takes more time;
+        rankForSearchID: iniSearchList.length
+      };
+    }
+    this.getToSaveLastSearches = () => {
+      return this.state.toSaveLastSearches;
+    };
+    this.setToSaveLastSearches = doSaving => {
+      this.setState({
+        toSaveLastSearches: doSaving
+      });
+    };
+    this.getSearchList = () => {
+      return this.state.searchList;
+    };
+    this.removeSearch = id => {
+      let searchList = [];
+      this.state.searchList.forEach(item => {
+        if (item.id != id) {
+          searchList.push(item);
+        }
+      });
+      this.setState({
+        searchList: searchList
+      });
+      // it is necessary to provide the list here,
+      // b/c its form in this.state.searchList
+      // has the updated value only after re-rendering
+      this.saveLastSearches(null, searchList);
+    };
+    this.saveLastSearches = (toSave, searchList) => {
+      if (toSave ?? this.getToSaveLastSearches()) {
+        storageSaveSearches(props.getStoragePrefix(), searchList ?? this.state.searchList, getFabricUi()["recallSearches"]);
+      } else {
+        storageCleanSearches(props.getStoragePrefix());
+      }
     };
     this.addSearch = (isAnswer, content) => {
       // a single answer should come to any question,
       // and any answer should have a previous question,
       // but better to take it more dynamically;
       let searchList = this.state.searchList;
+      const rankForSearchID = this.state.rankForSearchID;
+      this.setState({
+        // this value is generally not the rank of the item;
+        rankForSearchID: rankForSearchID + 1
+      });
       if (!isAnswer) {
         // a new question was made;
         searchList.push({
+          id: utilsGenSearchID(rankForSearchID),
           question: content,
           answers: []
         });
         this.setState({
-          searchList: searchList,
-          endRank: this.state.endRank + 1
+          searchList: searchList
         });
         return;
       }
@@ -37,12 +87,15 @@ class SearchList extends React.Component {
         // this situation should not happen,
         // but better to take care about it too;
         searchList.push({
-          question: null,
+          id: utilsGenSearchID(rankForSearchID),
+          question: {
+            subject: "---",
+            query: ""
+          },
           answers: [content]
         });
         this.setState({
-          searchList: searchList,
-          endRank: this.state.endRank + 1
+          searchList: searchList
         });
         return;
       }
@@ -61,17 +114,19 @@ class SearchList extends React.Component {
     return /*#__PURE__*/React.createElement("div", {
       id: "search-list"
     }, this.state.searchList.slice().reverse().map((x, i) => /*#__PURE__*/React.createElement("div", {
-      key: this.state.endRank - i
+      key: x.id
     }, i > 0 && /*#__PURE__*/React.createElement("hr", {
-      key: `s_${this.state.endRank - i}`,
+      key: `s_${x.id}`,
       className: "search-separator"
     }), x.question !== null && /*#__PURE__*/React.createElement(SearchQuestion, {
-      key: `q_${this.state.endRank - i}`,
-      content: x.question
+      key: `q_${x.id}`,
+      content: x.question,
+      removal: () => this.removeSearch(x.id),
+      removalActive: x.answers.length > 0
     }), i == 0 && x.answers.length == 0 && /*#__PURE__*/React.createElement(SearchWaiting, {
-      key: `w_${this.state.endRank - i}`
+      key: `w_${x.id}`
     }), x.answers.map((y, j) => /*#__PURE__*/React.createElement(SearchAnswer, {
-      key: `a_${this.state.endRank - i}_${j}`,
+      key: `a_${x.id}_${j}`,
       content: y
     })))));
   }

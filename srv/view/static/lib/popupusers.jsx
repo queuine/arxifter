@@ -6,13 +6,13 @@
 const React = window.React ?? await import('react');
 const ReactDOM = window.ReactDOM ?? await import('react-dom');
 
-class ArxifterPopup extends React.Component {
+class PopupUsers extends React.Component {
     constructor(props) {
         super(props);
         this.closePopup = props.closePopup;
         this.setupGuestSession = props.setupGuestSession;
         this.idRemembered = props.getIdRemembered();
-        this.noteText = getFabricLocal()["noteText"];
+        this.noteText = getFabricLocal()["noteUsers"];
         this.withGuest = getFabricUsers()["withGuest"];
         this.sessionStates = {
             NO: 0,
@@ -24,7 +24,7 @@ class ArxifterPopup extends React.Component {
         this.state = {
             userId: this.idRemembered,
             toRemember: this.idRemembered ? true : false,
-            asGuest: false,
+            asGuest: props.getIsGuest(),
             hasAgreed: false,
             isLaborer: false,
             guestId: "",
@@ -63,17 +63,34 @@ class ArxifterPopup extends React.Component {
                 sessionState: val
             });
         };
+        this.resetSession = () => {
+            this.setSessionState(
+                this.sessionStates.NO
+            );
+            if (this.agreeRef.current?.checked) {
+                this.agreeRef.current?.click();
+            }
+        };
     }
 
     render() {
         return (
-            <div open id="arxifter-popup">
-                <div id="arxifter-popup-top">
-                    {this.noteText}
+            <div open className="arxifter-popup">
+                <div id="popup-users-top">
+                    {getFabricLocal()["noteHtml"]
+                    ?
+                    <span
+                        dangerouslySetInnerHTML={{
+                            __html: this.noteText
+                        }}
+                    />
+                    :
+                    this.noteText
+                    }
                 </div>
-                <div id="arxifter-popup-form">
+                <div id="popup-users-form">
                     <button
-                        id="arxifter-popup-form-user"
+                        id="popup-users-form-user"
                         title={
                             this.state.asGuest
                             ?
@@ -81,18 +98,18 @@ class ArxifterPopup extends React.Component {
                             :
                             "Fill in the user id."
                         }
-                        htmlFor="arxifter-popup-input-user"
+                        htmlFor="popup-users-input-user"
                         className={
                             this.state.asGuest
                             ?
                             (
-                                "arxifter-popup-form-label "
-                                + "arxifter-popup-form-label-that"
+                                "popup-users-form-label "
+                                + "popup-users-form-label-that"
                             )
                             :
                             (
-                                "arxifter-popup-form-label "
-                                + "arxifter-popup-form-label-this"
+                                "popup-users-form-label "
+                                + "popup-users-form-label-this"
                             )
                         }
                         onClick={(e) => {
@@ -110,7 +127,11 @@ class ArxifterPopup extends React.Component {
                     <input
                         type="password"
                         size="32"
-                        id="arxifter-popup-input-user"
+                        className={
+                            this.state.asGuest &&
+                            "popup-users-form-label-invisible"
+                        }
+                        id="popup-users-input-user"
                         ref={this.inputRef}
                         autofocus={this.state.asGuest ? 'false' : 'true'}
                         disabled={this.state.asGuest ? true : false}
@@ -124,7 +145,7 @@ class ArxifterPopup extends React.Component {
                     <div></div>
                     <input
                         type="checkbox"
-                        id="arxifter-popup-checkbox-remember"
+                        id="popup-users-checkbox-remember"
                         disabled={this.state.asGuest ? true : false}
                         checked={this.state.toRemember}
                         onChange={(e) => {
@@ -134,25 +155,25 @@ class ArxifterPopup extends React.Component {
                         }}
                     />
                     <label
-                        htmlFor="arxifter-popup-checkbox-remember"
+                        htmlFor="popup-users-checkbox-remember"
                         className={
                             this.state.asGuest
                             ?
                             (
-                                "arxifter-popup-form-label-inner "
-                                + "arxifter-popup-form-label-disabled"
+                                "popup-users-form-label-inner "
+                                + "popup-users-form-label-disabled"
                             )
                             :
-                            "arxifter-popup-form-label-inner"
+                            "popup-users-form-label-inner"
                         }
                         >
                         remember id
                     </label>
                     {this.withGuest &&
                     <>
-                        <div id="arxifter-popup-separator"><hr /></div>
+                        <div id="popup-users-separator"><hr /></div>
                         <button
-                            id="arxifter-popup-form-guest"
+                            id="popup-users-form-guest"
                             title={
                                 this.state.asGuest
                                 ?
@@ -164,13 +185,13 @@ class ArxifterPopup extends React.Component {
                                 this.state.asGuest
                                 ?
                                 (
-                                    "arxifter-popup-form-label "
-                                    + "arxifter-popup-form-label-this"
+                                    "popup-users-form-label "
+                                    + "popup-users-form-label-this"
                                 )
                                 :
                                 (
-                                    "arxifter-popup-form-label "
-                                    + "arxifter-popup-form-label-that"
+                                    "popup-users-form-label "
+                                    + "popup-users-form-label-that"
                                 )
                             }
                             onClick={(e) => {
@@ -187,7 +208,7 @@ class ArxifterPopup extends React.Component {
                         </button>
                         <input
                             type="checkbox"
-                            id="arxifter-popup-checkbox-guest-agrees"
+                            id="popup-users-checkbox-guest-agrees"
                             ref={this.agreeRef}
                             autofocus={this.state.asGuest ? 'true' : 'false'}
                             disabled={this.state.asGuest ? false : true}
@@ -199,24 +220,24 @@ class ArxifterPopup extends React.Component {
                             }}
                         />
                         <label
-                            htmlFor="arxifter-popup-checkbox-guest-agrees"
+                            htmlFor="popup-users-checkbox-guest-agrees"
                             className={
                                 this.state.asGuest
                                 ?
-                                "arxifter-popup-form-label-inner"
+                                "popup-users-form-label-inner"
                                 :
                                 (
-                                    "arxifter-popup-form-label-inner "
-                                    + "arxifter-popup-form-label-disabled"
+                                    "popup-users-form-label-inner "
+                                    + "popup-users-form-label-disabled"
                                 )
                             }
                         >
                             I agree to evaluation use.
                         </label>
-                        <div id="arxifter-popup-empty-filler">
+                        <div id="popup-users-empty-filler">
                             <input
                                 type="checkbox"
-                                id="arxifter-popup-checkbox-is-laborer"
+                                id="popup-users-checkbox-is-laborer"
                                 disabled={this.state.asGuest ? false : true}
                                 onChange={(e) => {
                                     this.setState({
@@ -226,34 +247,34 @@ class ArxifterPopup extends React.Component {
                             />
                         </div>
                         <div
-                            id="arxifter-popup-session-notice"
+                            id="popup-users-session-notice"
                             className={
                                 this.state.asGuest
                                 ?
-                                "arxifter-popup-form-label-inner"
+                                "popup-users-form-label-inner"
                                 :
                                 (
-                                    "arxifter-popup-form-label-inner "
-                                    + "arxifter-popup-form-label-disabled"
+                                    "popup-users-form-label-inner "
+                                    + "popup-users-form-label-invisible"
                                 )
                             }
                         >
                         {(this.state.sessionState == this.sessionStates.NO)
-                            && "session is not set"
+                            && "guest session is not set"
                         }
                         {(this.state.sessionState == this.sessionStates.OK)
-                            && "session is set up"
+                            && "guest session is set up"
                         }
                         {(this.state.sessionState == this.sessionStates.KO)
-                            && "session set up failed"
+                            && "guest session set up failed"
                         }
                         </div>
                     </>
                     }
                 </div>
-                <div id="arxifter-popup-bottom">
+                <div className="arxifter-popup-bottom">
                     <button
-                        id="arxifter-popup-close"
+                        className="arxifter-popup-close"
                         onClick={(e) => {
                             this.closePopup();
                         }}
@@ -266,4 +287,4 @@ class ArxifterPopup extends React.Component {
     }
 }
 
-export { ArxifterPopup as default };
+export { PopupUsers as default };

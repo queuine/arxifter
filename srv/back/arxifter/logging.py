@@ -6,6 +6,9 @@ can ask for different levels of logging.
 
 import sys, time, inspect
 from pathlib import Path
+import unicodedata
+
+from .setting import REPLACEMENT_CHAR
 
 
 def _get_caller_module(rank):
@@ -37,6 +40,16 @@ def log_message(
         start = start + "in " + caller_module + ": "
 
     message = start + str(message)
+    message = "".join([
+        (
+            c if (
+                c in ["\r", "\n", "\t"]
+                or (unicodedata.category(c)[0] != "C")
+            )
+            else REPLACEMENT_CHAR
+        )
+        for c in message
+    ])
 
     sys.stderr.write(message + ("" if message.endswith("\n") else "\n"))
     sys.stderr.flush()

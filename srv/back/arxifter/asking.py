@@ -7,6 +7,7 @@ with that being put to an LLM.
 import os, json, time, asyncio
 
 from .setting import (
+    SESSION_EXPIRED_KEY,
     MIN_QUERY_LEN,
     MAX_QUERY_LEN,
     VECTORS_SUBDIR,
@@ -115,13 +116,17 @@ async def answer_query_inner(
         got_api_key = True
     except Exception as exc:
         logger.info(f"cannot continue with the query: {str(exc)}")
-        err_message = "the provided user is unkown"
+        err_message = (
+            "session has expired" if is_guest
+            else "the provided user is unkown"
+        )
         got_api_key = False
 
     if not got_api_key:
         return {
             "ok": False,
             "message": err_message,
+            SESSION_EXPIRED_KEY: is_guest,
         }
 
     data_dir = None
@@ -178,7 +183,7 @@ async def answer_query_inner(
         got_answer = True
         logger.info(" ".join([
             f"answer in {time_loading_span:.3f} s (index loading),",
-            f"{time_asking_span:.3f} s (llm answering):",
+            f"{time_asking_span:.3f} s (llm answering)",
         ]))
         if conf["debugging"]["llm_answers"]:
             logger.debug(llm_answer)

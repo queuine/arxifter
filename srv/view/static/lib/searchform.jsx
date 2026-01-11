@@ -18,7 +18,7 @@ class SearchForm extends React.Component {
         this.hasUserSet = props.hasUserSet;
         this.isUserGuest = props.isUserGuest;
         this.getUser = props.getUser;
-        this.openPopup = props.openPopup;
+        this.openPopupUsers = props.openPopupUsers;
         this.appendSearch = props.appendSearch;
         this.explaining = props.getExplaining();
         this.usedSubject = props.getUsedSubject();
@@ -90,7 +90,7 @@ class SearchForm extends React.Component {
                 return;
             }
             if (!this.hasUserSet()) {
-                this.openPopup(true);
+                this.openPopupUsers(true);
                 return;
             }
             this.setSubmitDisabled(true);

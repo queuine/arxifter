@@ -1,2 +1,2 @@
-To use Arxifter, either fill in user id or use it as a guest user.
-Guest user is for evaluation purposes only.
+To use Arxifter, either fill in your user id (if you already have one) or use it as a guest user.
+Guest users are for evaluation purposes only.

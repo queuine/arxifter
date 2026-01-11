@@ -11,6 +11,7 @@ from .setting import (
     NEW_DIRS_MODE,
     DOCUMENTS_SUBDIR,
     DOCUMENTS_FOR_VECTORS_SUBDIR,
+    BIORXIV_FEED_MINIMAL_SIZE,
     BIORXIV_DOI_START,
     BIORXIV_DOI_ENDS,
     ARTICLE_KEY_RANK,
@@ -179,6 +180,7 @@ def parse_feed_save_docs(source):
         return False
 
     ind = 0
+    parsed_count = 0
     for entry in feed_ents:
         ind += 1
 
@@ -196,10 +198,12 @@ def parse_feed_save_docs(source):
         art_abstract = _get_abstract(entry)
 
         if (art_title is None) or (art_abstract is None):
-            raise OSError("\n".join([
+            log_error("\n".join([
                 "article metadata lack required parts",
                 f"article: {ind} (indexing is from 1)",
+                str(source),
             ]))
+            continue
 
         art_reg = {}
         for key, val in [
@@ -222,7 +226,7 @@ def parse_feed_save_docs(source):
                 str(doc_path_orig),
                 str(exc),
             ]))
-            return False
+            continue
 
         try:
             with open(doc_path_prep, "w", encoding="utf8") as fh:
@@ -237,6 +241,15 @@ def parse_feed_save_docs(source):
                 str(doc_path_prep),
                 str(exc),
             ]))
-            return False
+            continue
+
+        parsed_count += 1
+
+    if parsed_count < BIORXIV_FEED_MINIMAL_SIZE:
+        log_error("\n".join([
+            f"too low count ({parsed_count}) of docs taken out of feed",
+            str(source),
+        ]))
+        return False
 
     return True

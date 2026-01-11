@@ -7,7 +7,9 @@ const ReactDOM = window.ReactDOM ?? (await import('react-dom'));
 function FormExplained(props) {
   const checkName = props.dataName;
   const [getExplained, setGetExplained] = React.useState(props.explaining);
-  return /*#__PURE__*/React.createElement("label", null, /*#__PURE__*/React.createElement("input", {
+  return /*#__PURE__*/React.createElement("label", {
+    title: "whether LLM should explain its choices"
+  }, /*#__PURE__*/React.createElement("input", {
     type: "checkbox",
     name: checkName,
     value: "yes",
