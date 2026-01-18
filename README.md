@@ -35,8 +35,8 @@ It is enabled / disabled by setting the "users:with_guest" item to true vs. fals
 To run arxifter via podman, run the two following commands from the arxifter distribution directory;
 it contains two `Dockerfile` files for it, with one of them being used during development of arxifter.
 
-- `buildah build -f Dockerfile -t arxifter:v02 .`
-- `podman run -it -p 8000:5000 -v ./srv:/arxifter/srv --name arxifter arxifter:v02`
+- `buildah build -f Dockerfile -t arxifter:v03 .`
+- `podman run -it -p 8000:5000 -v ./srv:/arxifter/srv --name arxifter arxifter:v03`
 
 Once being within a running container, biorxiv RSS feeds can be ingested
 by the `feeder.sh` script in the `srv` subdirectory, as stated above.

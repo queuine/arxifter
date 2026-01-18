@@ -6,6 +6,9 @@
 
 const React = window.React ?? (await import('react'));
 const ReactDOM = window.ReactDOM ?? (await import('react-dom'));
+const {
+  jsonrepair
+} = window.JSONRepair ?? (await import('jsonrepair'));
 import ArxifterTop from "arxifter/biorxiv/arxiftertop.js";
 import PopupSetting from "arxifter/biorxiv/popupsetting.js";
 import PopupUsers from "arxifter/biorxiv/popupusers.js";
@@ -287,7 +290,7 @@ function ArxifterPage() {
     openPopupUsers: openPopupUsers
   }), /*#__PURE__*/React.createElement(SearchList, {
     ref: searchesRef,
-    searchList: storageLoadSearches(getStoragePrefix()),
+    searchList: storageLoadSearches(getStoragePrefix(), jsonrepair),
     getSaveLastSearches: getSaveLastSearches,
     getStoragePrefix: getStoragePrefix
   }));

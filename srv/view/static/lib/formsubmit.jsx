@@ -7,7 +7,11 @@ const ReactDOM = window.ReactDOM ?? await import('react-dom');
 
 function FormSubmit({disabled}) {
     return (
-        <button id="form-submit-button" disabled={disabled}>
+        <button
+            id="form-submit-button"
+            title="send the query to LLM"
+            disabled={disabled}
+        >
             Submit
         </button>
     );

@@ -133,6 +133,7 @@ class SearchList extends React.Component {
                             (x.question !== null) &&
                             <SearchQuestion
                                 key={`q_${x.id}`}
+                                rank={i}
                                 content={x.question}
                                 removal={() => this.removeSearch(x.id)}
                                 removalActive={x.answers.length > 0}

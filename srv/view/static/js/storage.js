@@ -49,7 +49,7 @@ function storageSaveSearches(prefix, searchList, maxCount) {
 };
 
 // take the last searches
-function storageLoadSearches(prefix) {
+function storageLoadSearches(prefix, jsonrepair) {
     const storedSearches = localStorage.getItem(
         storageGetLabelSearches(prefix)
     );
@@ -57,12 +57,28 @@ function storageLoadSearches(prefix) {
         return [];
     }
     let parsedSearches = [];
+    let parsingError = false;
     try {
         parsedSearches = JSON.parse(storedSearches);
     } catch (e) {
         parsedSearches = [];
+        parsingError = true;
     }
-    return parsedSearches;
+    if (parsingError) {
+        // There should be no error during the parsing of the stored list;
+        // but browsers may decide that the stored data are too big,
+        // possibly truncating it (generally doing something to it).
+        // And since such a truncating occurred once during testing,
+        // it is better to consider it as a possibility.
+        try {
+            parsedSearches = JSON.parse(
+                jsonrepair(storedSearches)
+            );
+        } catch (e) {
+            parsedSearches = [];
+        }
+    }
+    return utilsCheckSearchList(parsedSearches);
 };
 
 // remove the last searches

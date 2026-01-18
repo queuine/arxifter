@@ -21,8 +21,20 @@ function FormSubject(props) {
     ];
 
     return (
-        <label>
-            <span id="form-subject-title">biorxiv feed:</span>
+        <div
+            id="form-subject-outer"
+            title="choose a feed for the sifting"
+        >
+            <label
+                id="form-subject-label"
+                htmlFor="form-subject-selection"
+            >
+                <span
+                    id="form-subject-title"
+                >
+                    biorxiv feed:
+                </span>
+            </label>
             <select
                 id="form-subject-selection"
                 name={subjectName}
@@ -34,7 +46,7 @@ function FormSubject(props) {
                     </option>
                 )}
             </select>
-        </label>
+        </div>
     );
 }
 

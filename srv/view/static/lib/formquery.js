@@ -33,6 +33,7 @@ class FormQuery extends React.Component {
       id: "form-query-roof"
     }, /*#__PURE__*/React.createElement("label", {
       id: "form-query-title",
+      title: "LLM picks out articles from the selected bioRχiv" + " feed according to the query entered below",
       htmlFor: this.textareaIdName
     }, this.queryLabel), this.children), /*#__PURE__*/React.createElement("textarea", {
       ref: this.textareaRef,

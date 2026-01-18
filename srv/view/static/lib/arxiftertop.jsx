@@ -26,16 +26,26 @@ function ArxifterTop(props) {
                 <button
                     id="arxifter-top-button-setting"
                     className="arxifter-top-button"
+                    title="configuration of UI"
                     onClick={(e) => {openPopupSetting();}}
                 >
-                    Setting
+                    <span
+                        className="arxifter-top-button-title"
+                    >
+                        Setting
+                    </span>
                 </button>
                 <button
                     id="arxifter-top-button-users"
                     className="arxifter-top-button"
+                    title="set up regular or guest user"
                     onClick={(e) => {openPopupUsers();}}
                 >
-                    Users
+                    <span
+                        className="arxifter-top-button-title"
+                    >
+                        Users
+                    </span>
                 </button>
             </div>
         </div>

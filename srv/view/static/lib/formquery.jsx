@@ -42,6 +42,10 @@ class FormQuery extends React.Component {
                 <div id="form-query-roof">
                     <label
                         id="form-query-title"
+                        title={
+                            "LLM picks out articles from the selected bioRχiv"
+                            + " feed according to the query entered below"
+                        }
                         htmlFor={this.textareaIdName}
                     >
                         {this.queryLabel}

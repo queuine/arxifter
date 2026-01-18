@@ -34,7 +34,10 @@ function SearchQuestion(props) {
                                     : " search-question-delete-inactive"
                                 )
                             }
-                            title="Delete the search results"
+                            title={
+                                "Delete results of the search"
+                                + ` #${props.rank + 1}`
+                            }
                             disabled={!props.removalActive}
                             onClick={props.removal}
                         >

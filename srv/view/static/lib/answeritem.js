@@ -32,7 +32,7 @@ function AnswerItem(props) {
     className: "answer-item-key"
   }, "notice:"), /*#__PURE__*/React.createElement("span", {
     className: "answer-item-notice"
-  }, utilsGetValue(item, warningKey))), utilsHasValue(item, "title") && /*#__PURE__*/React.createElement("div", {
+  }, utilsGetValue(item, warningKey))), /*#__PURE__*/React.createElement("div", {
     className: "answer-item-title-outer"
   }, /*#__PURE__*/React.createElement("div", {
     className: "answer-item-key"

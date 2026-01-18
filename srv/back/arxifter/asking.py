@@ -4,7 +4,7 @@ Management of processing the user questions on biorxiv feeds,
 with that being put to an LLM.
 """
 
-import os, json, time, asyncio
+import os, time, asyncio
 
 from .setting import (
     SESSION_EXPIRED_KEY,
@@ -18,6 +18,7 @@ from .keys import get_user_api_key
 from .loader import load_index
 from .mocking import get_mocked_answer
 from .querier import exec_query
+from .answerer import parse_llm_answer
 from .former import form_response
 
 
@@ -201,11 +202,11 @@ async def answer_query_inner(
     parsed_answer = None
     has_parsed = False
     try:
-        parsed_answer = json.loads(str(llm_answer))
+        parsed_answer = parse_llm_answer(logger, llm_answer)
         has_parsed = True
     except Exception as exc:
         logger.warning(f"could not parse the answer data: {str(exc)}")
-        err_message = "problems with the query answer"
+        err_message = "could not parse the LLM query answer"
         has_parsed = False
 
     if not has_parsed:

@@ -10,9 +10,15 @@ function FormSubject(props) {
   const biorxivSubjectLabels = fabricFeeds["subjects"];
   const biorxivSubjectLabelsDefaultSystem = biorxivSubjectLabels.indexOf(fabricFeeds["defaultSubject"]);
   const biorxivSubjectLabelDefault = biorxivSubjectLabels[props.usedSubject > -1 ? props.usedSubject : biorxivSubjectLabelsDefaultSystem > -1 ? biorxivSubjectLabelsDefaultSystem : 0];
-  return /*#__PURE__*/React.createElement("label", null, /*#__PURE__*/React.createElement("span", {
+  return /*#__PURE__*/React.createElement("div", {
+    id: "form-subject-outer",
+    title: "choose a feed for the sifting"
+  }, /*#__PURE__*/React.createElement("label", {
+    id: "form-subject-label",
+    htmlFor: "form-subject-selection"
+  }, /*#__PURE__*/React.createElement("span", {
     id: "form-subject-title"
-  }, "biorxiv feed:"), /*#__PURE__*/React.createElement("select", {
+  }, "biorxiv feed:")), /*#__PURE__*/React.createElement("select", {
     id: "form-subject-selection",
     name: subjectName,
     defaultValue: biorxivSubjectLabelDefault

@@ -120,6 +120,7 @@ class SearchList extends React.Component {
       className: "search-separator"
     }), x.question !== null && /*#__PURE__*/React.createElement(SearchQuestion, {
       key: `q_${x.id}`,
+      rank: i,
       content: x.question,
       removal: () => this.removeSearch(x.id),
       removalActive: x.answers.length > 0

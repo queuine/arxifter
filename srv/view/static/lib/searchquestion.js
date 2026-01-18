@@ -20,7 +20,7 @@ function SearchQuestion(props) {
     className: "search-question-delete-outer"
   }, /*#__PURE__*/React.createElement("button", {
     className: "search-question-delete" + (props.removalActive ? "" : " search-question-delete-inactive"),
-    title: "Delete the search results",
+    title: "Delete results of the search" + ` #${props.rank + 1}`,
     disabled: !props.removalActive,
     onClick: props.removal
   }, "X"))), /*#__PURE__*/React.createElement("div", {

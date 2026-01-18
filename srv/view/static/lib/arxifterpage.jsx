@@ -6,6 +6,7 @@
 
 const React = window.React ?? await import('react');
 const ReactDOM = window.ReactDOM ?? await import('react-dom');
+const { jsonrepair } = window.JSONRepair ?? await import('jsonrepair');
 
 import ArxifterTop from "arxifter/biorxiv/arxiftertop.js";
 import PopupSetting from "arxifter/biorxiv/popupsetting.js";
@@ -328,7 +329,10 @@ function ArxifterPage() {
             <SearchList
                 ref={searchesRef}
                 searchList={
-                    storageLoadSearches(getStoragePrefix())
+                    storageLoadSearches(
+                        getStoragePrefix(),
+                        jsonrepair
+                    )
                 }
                 getSaveLastSearches={getSaveLastSearches}
                 getStoragePrefix={getStoragePrefix}

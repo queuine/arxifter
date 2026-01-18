@@ -1,0 +1,4 @@
+When jsonrepair is served locally, the next file
+* jsonrepair.min.js
+has to be put here, e.g. from
+https://cdn.jsdelivr.net/npm/jsonrepair/lib/umd/

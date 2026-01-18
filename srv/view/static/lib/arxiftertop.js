@@ -22,15 +22,21 @@ function ArxifterTop(props) {
   }, /*#__PURE__*/React.createElement("button", {
     id: "arxifter-top-button-setting",
     className: "arxifter-top-button",
+    title: "configuration of UI",
     onClick: e => {
       openPopupSetting();
     }
-  }, "Setting"), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "arxifter-top-button-title"
+  }, "Setting")), /*#__PURE__*/React.createElement("button", {
     id: "arxifter-top-button-users",
     className: "arxifter-top-button",
+    title: "set up regular or guest user",
     onClick: e => {
       openPopupUsers();
     }
-  }, "Users")));
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "arxifter-top-button-title"
+  }, "Users"))));
 }
 export { ArxifterTop as default };

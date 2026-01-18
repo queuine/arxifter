@@ -9,6 +9,7 @@ function FormSubmit({
 }) {
   return /*#__PURE__*/React.createElement("button", {
     id: "form-submit-button",
+    title: "send the query to LLM",
     disabled: disabled
   }, "Submit");
 }

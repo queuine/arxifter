@@ -1,5 +1,11 @@
 FROM python:3.12
-RUN apt update && apt install -y node-babel7
+RUN apt update \
+    && apt install -y \
+        make \
+        node-babel7 \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/*
+RUN echo "alias ll='ls -lva --group-directories-first'" >> /root/.bashrc
 WORKDIR /arxifter
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt

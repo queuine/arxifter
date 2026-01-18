@@ -7,6 +7,9 @@ function utilsToSubjectView(subjectLabel) {
     if (subjectLabel.length == 0) {
         return "";
     }
+    if (subjectLabel == "all") {
+        return "Mixed";
+    }
     let subjectParts = [];
     subjectLabel.split("+").forEach(item => {
         if (item.length != 0) {
@@ -216,4 +219,33 @@ function utilsRandomizeHex() {
 function utilsGenSearchID(rank) {
     const randPart = Math.round(Math.random() * 1e9);
     return `search-${rank}-${Date.now()}-${randPart}`;
+};
+
+// for checking the structure of the search list taken from local storage;
+// while it should be intact, it is better to check it;
+function utilsCheckSearchList(searchList) {
+    let useList = utilsIsArray(searchList) ? searchList : [];
+    let checkedList = [];
+
+    for (let idx = 0; idx < useList.length; idx += 1) {
+        let onePart = useList[idx];
+        if ((!utilsIsDict(onePart)) || (!utilsIsDict(onePart.question))) {
+            continue;
+        }
+        if (onePart.question.subject === undefined) {
+            onePart.question.subject = "---";
+        }
+        if (onePart.question.query === undefined) {
+            onePart.question.query = "";
+        }
+        if (onePart.id === undefined) {
+            onePart.id = utilsGenSearchID(idx);
+        }
+        if (!utilsIsArray(onePart.answers)) {
+            onePart.answers = [];
+        }
+        checkedList.push(onePart);
+    }
+
+    return checkedList;
 };
