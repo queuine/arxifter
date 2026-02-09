@@ -88,11 +88,3 @@ def get_user_api_key(conf, user_id, is_guest):
         return key
 
     return None
-
-
-def get_llm_key_indexer(conf):
-    """
-    Provides LLM API-key for indexing of RSS feeds.
-    """
-    key_path = conf["keys"]["indexer"]["path"]
-    return Path(key_path).read_text(encoding="utf8").strip()

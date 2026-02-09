@@ -1,123 +1,125 @@
 # arxifter configuration
-#
-# It has both parts to be set by system administrators
-# and technical parts (commonly not to be changed) that are here,
-# because (some) items from this file are served to the frontend too.
-#
 
 [server]
-# where the arxifter web is served;
-# set it to "" if arxifter is served at the "/" path
-path_prefix = "/biorxiv"
-# it has to be set to the actual server spec
-# where the arxifter gets deployed;
+# header_origin has to be set to the actual server spec where the arxifter gets deployed;
+# (if arxifter is deployed on https://example.net it should be set to it);
 # the guests and query requests check it.
-# if it is set as an empty string,
-# the checking is not performed.
-#header_origin = "http://localhost:8000"
-header_origin = ""
-
-["session"]
-# technical items for providing guest users
-clue_vis = "clue_one"
-clue_hid = "clue_two"
-clue_str = "clue_three"
-clue_len = 16
-provided = "available"
-
-[handshake]
-# technical items for starting queries to LLM
-count = 8
-first_bits = 8
-
-[query]
-# technical items for making queries to LLM
-query_text = "query"
-to_explain = "explain"
-user_id = "user"
-is_guest = "guest"
-
-[answer]
-# technical items for getting answers from LLM
-llm_response = "answer"
-sys_message = "message"
+# if it is set as an empty string, the checking is not performed.
+# here the 8000 port is according to the expected docker/podman deployment
+header_origin = "http://localhost:8000"
+# the port on which the web server listens;
+# (docker/podman can remap it to another port at the host)
+port = 5000
+# when arxifter is served via docker/podman, it has to listen on the 0.0.0.0 interface.
+# a serving w/o that, but still behind a reverse proxy, asks for "127.0.0.1" then;
+address = "0.0.0.0"
+# whether the server is covered by a reverse proxy server;
+# static files are assumed to be served by that proxy;
+behind_proxy = false
 
 [view]
-# the page shown to users;
-# it has two versions:
-# with React served from CDN vs. locally
+# the path at which the arxifter web is served;
+# set it to "" if arxifter is served at the "/" path
+path_prefix = "/biorxiv"
+# the page shown to users has two versions:
+# with common JS libs served from CDN vs. locally
+# main_page = "../view/page_local.html"
 main_page = "../view/page_cdn.html"
-#main_page = "../view/page_local.html"
+# where the statically served files are located
 static_dir = "../view/static/"
 
-[local]
-# to be set according to actual deployments
-# the top-left link
-back_name = "Arxifter"
-back_link = "https://arxifter.quadet.com"
-back_title = "to Arxifter home page"
+[backlink]
+# to be set according to actual deployments;
+# the top-left link: it can be customized;
+name = "arχifter"
+link = "https://arxifter.quadet.com"
+title = "to arχifter home page"
+
+[notices]
 # the text at the top of the user-popup
 note_users = "about.txt"
-# whether the note_text file should be rendered as html;
+# whether the note_users file should be rendered as html;
 # if not, it is rendered as plain text
-note_html = false
+note_users_html = false
 
 [ui]
-# for cookie that keeps user id if user asks for it
+# a technical part that can be left unchanged;
+# for cookie that keeps user id if users ask for it
 user_id = "arxifter.userid"
 # how many days that cookie should be kept;
-# it gets auto-renewed if the user uses arxifter meanwhile
+# it gets auto-renewed if user visits arxifter meanwhile
 retain_user = 30
 # name prefix for items stored at browser local storage
 storage_prefix = "arxifter.biorxiv"
-# how many searches can get stored (in browser);
-# the searches are stored by default, but users can disallow it
-recall_searches = 20
+# how many sifts can get stored in browser local storage;
+# the sifts are stored by default, but users can disallow it;
+# since browsers have a limited capacity for data storage,
+# this value should not be set too large;
+recall_sifts = 20
 
 [feeds]
-# if a deployment is to be used for a subset of feeds only,
-# the other feeds should be removed from the file specified here
+# deployments can be used for a subset of feeds only;
+# and combined subjects can be specified for feeds too;
 subjects = "subjects.txt"
-default_subject = "all"
-feed_size = 30
+default_subject = "cell_biology"
 
 [data]
-# where the feeds and the data based on them are stored
-# and how long they should be retained;
-# the two items "pruning", "kept_days" specify
-# the data retention vs. shedding the past data;
-storage_dir = "../data/"
+# where the feeds and the data based on them are stored;
+storage_dir = "../feed/"
+# whether past stored feed data should be removed;
 pruning = true
-kept_days = 30
+# how long the feeds should be retained;
+# (this value is used only when pruning is set to true)
+kept_days = 7
+
+[embed]
+# models from HF are expected to be stored at "hub" subdirectory
+# of the directory set to the "models_base_dir" key
+models_base_dir = "../mods/"
+# model for dense encoders
+# (in the way it is taken by the fastembed library)
+dense_embed_model = "BAAI/bge-base-en-v1.5"
+# model for static encoders
+# (in the way it is taken by the model2vec library)
+static_embed_model = "NeuML/pubmedbert-base-embeddings-8M"
+
+[sifting]
+# presifting part done by the used dense embedding model
+pick_count_dense = 5
+# presifting part done by the used static embedding model
+pick_count_static = 5
+# the maximal count of articles that LLM ought to provide
+answer_max_count = 5
 
 [prompts]
 # the prompts that are used for LLM querying
 plain = "prompts/plain.txt"
 explained = "prompts/explained.txt"
+common_end = "prompts/ending.txt"
 
 [llms]
-# most of these items are technical;
-# the "query_top_count" item defines the maximal count
-# of articles that LLM can provide within one answer
-embed_model_name = "text-embedding-3-small"
-embed_batch_size = 30
+# LLM inference API end point for OpenAI compatible services;
+# empty base_url means that OpenAI is used;
+# so far OpenAI and Fireworks AI have been tested;
+# base_url = "https://api.fireworks.ai/inference/v1"
+base_url = ""
+# model used by the inferring LLM;
+# model_name = "fireworks/gpt-oss-20b"
 model_name = "gpt-5-nano"
-query_top_count = 5
 
 [users]
-# where ids of regular and guest users are stored;
-# users are set by ids only (not by name/password pairs);
 # if a deployment is to be w/o allowing guests,
-# the "with_guest" item has to be set to false
-regular_users = "../keys/users.list"
+# the "with_guest" value has to be set to false
 with_guest = true
-guest_ids = "../keys/guest/"
+# session span (in hours) of guest users
 guest_span = 24
+# where ids of regular and guest users are stored;
+# users are set by ids only (i.e. not by name/password pairs);
+regular_users = "../keys/users.list"
+guest_ids = "../keys/guest/"
 
 [keys]
 # locations of LLM api keys;
-# the "indexer" key is used during feed ingesting
-indexer = "../keys/indexer.key"
 regular_users = "../keys/users/"
 guest_user = "../keys/guest.key"
 
@@ -129,5 +131,5 @@ to_mock = false
 
 [debugging]
 # for testing purposes
-llm_answers = false
-feed_taking = false
+query_sifting = false
+feed_ingest = false

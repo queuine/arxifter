@@ -25,9 +25,31 @@ class SearchList extends React.Component {
                 // to have a possibility for such a situation,
                 // since expecting that the combination of user action
                 // within the UI and page reload takes more time;
-                rankForSearchID: iniSearchList.length
+                rankForSearchID: iniSearchList.length,
+                waitingTimestamp: 0,
+                waiting: false
             };
         }
+        this.startWaiting = () => {
+            this.setState({
+                waiting: true
+            });
+            setTimeout(this.updateWaiting, 1000);
+        };
+        this.updateWaiting = () => {
+            if (!this.state.waiting) {
+                return;
+            }
+            this.setState({
+                waitingTimestamp: Date.now()
+            });
+            setTimeout(this.updateWaiting, 1000);
+        };
+        this.stopWaiting = () => {
+            this.setState({
+                waiting: false
+            });
+        };
         this.getToSaveLastSearches = () => {
             return this.state.toSaveLastSearches;
         };
@@ -38,6 +60,123 @@ class SearchList extends React.Component {
         };
         this.getSearchList = () => {
             return this.state.searchList;
+        };
+        this.sortArticleData = (article) => {
+            if (!utilsIsDict(article)) {
+                return article;
+            }
+            let sortedArticle = {};
+            let usedKeys = [];
+
+            const key_suggestion = utilsGetKey(
+                article, utilsGetSuggestionKey()
+            );
+            if (key_suggestion !== null) {
+                sortedArticle["matches"] = !(article[key_suggestion]);
+                usedKeys.push(key_suggestion);
+            }
+
+            const base_keys = [
+                "title", "date", "doi", "link", "authors", "abstract"
+            ];
+            base_keys.forEach((key, idx) => {
+                const real_key = utilsGetKey(article, key);
+                if (real_key !== null) {
+                    sortedArticle[key] = article[real_key];
+                    usedKeys.push(real_key);
+                }
+            })
+
+            Object.entries(article).map(([key, val]) => {
+                if (!(usedKeys.includes(key))) {
+                    sortedArticle[key] = val;
+                }
+            });
+            return sortedArticle;
+        };
+        this.canUseFileAPI = () => {
+            if (!("showSaveFilePicker" in window)) {
+                return false;
+            }
+            try {
+                if (window.self !== window.top) {
+                    return false;
+                }
+            } catch (e) {
+                return false;
+            }
+            return true;
+        };
+        this.suggestFileName = (item, rank) => {
+            const timestamp = item?.timestamp ?? 0;
+            let ts = Number(timestamp);
+            if (!isFinite(ts)) {
+                ts = 0;
+            } else {
+                ts = Math.max(0, Math.round(ts));
+            }
+            if (!ts) {
+                return `sifting_${rank}.json`;
+            }
+            const dt = new Date(ts);
+            const ts_formatted = (
+                dt.getFullYear()
+                + "-"
+                + String(dt.getMonth() + 1).padStart(2, 0)
+                + "-"
+                + String(dt.getDate()).padStart(2, 0)
+                + "_"
+                + String(dt.getHours()).padStart(2, 0)
+                + "-"
+                + String(dt.getMinutes()).padStart(2, 0)
+                + "-"
+                + String(dt.getSeconds()).padStart(2, 0)
+            );
+            return `sifting_${ts_formatted}.json`;
+        };
+        this.downloadSearchClassic = (downloadBlob, downloadItem, rank) => {
+            const downloadElem = document.createElement("a");
+            const url = URL.createObjectURL(downloadBlob);
+            document.body.appendChild(downloadElem);
+            downloadElem.href = url;
+            downloadElem.download = this.suggestFileName(downloadItem, rank);
+            downloadElem.click();
+            downloadElem.remove();
+            window.URL.revokeObjectURL(url);
+        };
+        this.downloadSearch = async (id, rank) => {
+            let downloadItem = {};
+            this.state.searchList.forEach((item) => {
+                if (item.id == id) {
+                    downloadItem = item;
+                }
+            });
+            try {
+                const downloadBlob = new Blob([JSON.stringify({
+                    "subject": downloadItem?.question?.subject,
+                    "query": downloadItem?.question?.query,
+                    "answer": downloadItem?.answers?.flat().map(
+                        item => this.sortArticleData(item)
+                    )
+                }, null, 4)], {type: "application/json"});
+                if (!this.canUseFileAPI()) {
+                    this.downloadSearchClassic(
+                        downloadBlob, downloadItem, rank
+                    );
+                    return;
+                }
+                const newHandle = await window.showSaveFilePicker({
+                    id: "arxifter-biorxiv-sifting-result",
+                    suggestedName: this.suggestFileName(downloadItem, rank),
+                    types: [{
+                        description: "JSON files",
+                        accept: {"application/json": [".json"]}
+                    }]
+                });
+                const writableStream = await newHandle.createWritable();
+                await writableStream.write(downloadBlob);
+                await writableStream.close();
+            } catch (e) {}
         };
         this.removeSearch = (id) => {
             let searchList = [];
@@ -56,13 +195,13 @@ class SearchList extends React.Component {
         };
         this.saveLastSearches = (toSave, searchList) => {
             if (toSave ?? this.getToSaveLastSearches()) {
-                storageSaveSearches(
+                storageSaveSifts(
                     props.getStoragePrefix(),
                     searchList ?? this.state.searchList,
-                    getFabricUi()["recallSearches"]
+                    getFabricUi()["recallSifts"]
                 );
             } else {
-                storageCleanSearches(
+                storageCleanSifts(
                     props.getStoragePrefix()
                 );
             }
@@ -82,13 +221,16 @@ class SearchList extends React.Component {
                 searchList.push({
                     id: utilsGenSearchID(rankForSearchID),
                     question: content,
+                    timestamp: Date.now(),
                     answers: []
                 });
                 this.setState({
                     searchList: searchList
                 });
+                this.startWaiting();
                 return;
             }
+            this.stopWaiting();
             // if here, it is an answer;
             if (searchList.length == 0) {
                 // if here, there is no previous question though;
@@ -115,6 +257,7 @@ class SearchList extends React.Component {
     }
 
     render() {
+        const searchCount = this.state.searchList.length;
         return (
             <div id="search-list">
                 {
@@ -133,16 +276,22 @@ class SearchList extends React.Component {
                             (x.question !== null) &&
                             <SearchQuestion
                                 key={`q_${x.id}`}
-                                rank={i}
+                                rank={searchCount - i}
                                 content={x.question}
-                                removal={() => this.removeSearch(x.id)}
-                                removalActive={x.answers.length > 0}
+                                timestamp={x.timestamp ?? 0}
+                                doSave={() => this.downloadSearch(
+                                    x.id,
+                                    searchCount - i
+                                )}
+                                doRemoval={() => this.removeSearch(x.id)}
+                                actionActive={x.answers.length > 0}
                             />
                         }
                         {
                             ((i == 0) && (x.answers.length == 0)) &&
                             <SearchWaiting
                                 key={`w_${x.id}`}
+                                timestamp={x.timestamp}
                             />
                         }
                         {

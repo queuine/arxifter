@@ -11,8 +11,12 @@ from .setting import (
     CONFIG_OTHER_LETTERS,
     NEW_DIRS_MODE,
     SESSION_CLUE_LEN_BASE,
-    MAX_RECALL_SEARCHES_COUNT,
+    MAX_RECALL_SIFTS_COUNT,
     BIORXIV_FEED_SIZE,
+    ENV_HF_MODELS_CACHE_DIR,
+    ENV_HF_ASSETS_CACHE_DIR,
+    HF_MODELS_SUBDIR,
+    HF_ASSETS_SUBDIR,
 )
 from .utils import subject_spec_to_fs_name
 from .logging import log_error
@@ -104,6 +108,31 @@ def _read_subject_list(conf_part):
         )
 
 
+def _set_model_dirs(conf_embed):
+    conf_embed["models_cache_dir"] = {
+        "path": os.path.join(
+            conf_embed["models_base_dir"]["path"],
+            HF_MODELS_SUBDIR,
+        ),
+    }
+    os.environ[ENV_HF_MODELS_CACHE_DIR] = (
+        conf_embed["models_cache_dir"]["path"]
+    )
+
+    conf_embed["assets_cache_dir"] = {
+        "path": os.path.join(
+            conf_embed["models_base_dir"]["path"],
+            HF_ASSETS_SUBDIR,
+        ),
+    }
+    os.environ[ENV_HF_ASSETS_CACHE_DIR] = (
+        conf_embed["assets_cache_dir"]["path"]
+    )
+
+    _check_conf_path_access(conf_embed["models_base_dir"], is_dir=True)
+    _check_conf_path_access(conf_embed["models_cache_dir"], is_dir=True)
+
+
 def _check_conf_header_origin(header_origin):
     if header_origin == "":
         return
@@ -156,18 +185,18 @@ def _complete_conf(conf):
     conf["view"]["main_page"]["rendered"] = (
         conf["view"]["main_page"]["content"].replace(
             "{path_prefix}",
-            conf["server"]["path_prefix"],
+            conf["view"]["path_prefix"],
         )
     )
 
     _check_conf_path_access(conf["view"]["static_dir"], is_dir=True)
 
-    _read_conf_file(conf["local"]["note_users"])
+    _read_conf_file(conf["notices"]["note_users"])
 
-    if conf["ui"]["recall_searches"] > MAX_RECALL_SEARCHES_COUNT:
+    if conf["ui"]["recall_sifts"] > MAX_RECALL_SIFTS_COUNT:
         raise OSError(
-            "configuration: 'ui'/'recall_searches' "
-            f"has to at most {MAX_RECALL_SEARCHES_COUNT}"
+            "configuration: 'ui'/'recall_sifts' "
+            f"has to at most {MAX_RECALL_SIFTS_COUNT}"
         )
 
     _read_subject_list(conf["feeds"]["subjects"])
@@ -181,15 +210,49 @@ def _complete_conf(conf):
     _check_conf_path_access(
         conf["data"]["storage_dir"],
         is_dir=True,
-        writable=True
+        writable=True,
     )
 
     conf["prompts"]["plain"]["content"] = _read_prompt_template(
         conf["prompts"]["plain"]["path"]
+    ).replace(
+        "{max_count}",
+        str(conf["sifting"]["answer_max_count"]),
     )
     conf["prompts"]["explained"]["content"] = _read_prompt_template(
         conf["prompts"]["explained"]["path"]
+    ).replace(
+        "{max_count}",
+        str(conf["sifting"]["answer_max_count"]),
     )
+    conf["prompts"]["common_end"]["content"] = _read_prompt_template(
+        conf["prompts"]["common_end"]["path"]
+    )
+
+    _set_model_dirs(conf["embed"])
+
+    if (
+        (conf["embed"]["dense_embed_model"] == "")
+        or (conf["embed"]["static_embed_model"] == "")
+    ):
+        raise OSError(
+            "configuration: 'embed', model names have to be filled "
+            "both for 'dense_embed_model' and 'static_embed_model'"
+        )
+
+    if (
+        (
+            conf["sifting"]["pick_count_dense"]
+            + conf["sifting"]["pick_count_static"]
+        )
+        < conf["sifting"]["answer_max_count"]
+    ):
+        raise OSError(
+            "configuration: 'sifting', "
+            "it does not make sense to have 'answer_max_count' "
+            "bigger than the sum of 'pick_count_dense' "
+            "and 'pick_count_static'"
+        )
 
     _check_conf_path_access(conf["users"]["regular_users"])
 
@@ -197,10 +260,8 @@ def _complete_conf(conf):
         _check_conf_path_access(
             conf["users"]["guest_ids"],
             is_dir=True,
-            writable=True
+            writable=True,
         )
-
-    _check_conf_path_access(conf["keys"]["indexer"])
 
     _check_conf_path_access(conf["keys"]["regular_users"], is_dir=True)
 
@@ -216,18 +277,17 @@ def _fill_conf(conf, conf_path):
     conf_raw = _read_conf_raw(conf_path)
     try:
         for part, itemlist in [
-            ["server", ["path_prefix", "header_origin"]],
-            ["local", ["back_name", "back_link", "back_title"]],
+            ["server", ["header_origin", "address"]],
+            ["view", ["path_prefix"]],
+            ["backlink", ["name", "link", "title"]],
             ["feeds", ["default_subject"]],
-            ["llms", ["embed_model_name", "model_name"]],
+            ["embed", ["dense_embed_model", "static_embed_model"]],
+            ["llms", ["model_name", "base_url"]],
         ]:
             for item in itemlist:
                 conf[part][item] = str(conf_raw[part][item])
 
         for part, itemlist in [
-            ["session", ["clue_vis", "clue_hid", "clue_str", "provided"]],
-            ["query", ["query_text", "to_explain", "user_id", "is_guest"]],
-            ["answer", ["llm_response", "sys_message"]],
             ["ui", ["user_id", "storage_prefix"]],
         ]:
             for item in itemlist:
@@ -246,12 +306,13 @@ def _fill_conf(conf, conf_path):
 
         for part, itemlist in [
             ["view", ["main_page", "static_dir"]],
-            ["local", ["note_users"]],
+            ["notices", ["note_users"]],
             ["feeds", ["subjects"]],
             ["data", ["storage_dir"]],
-            ["prompts", ["plain", "explained"]],
+            ["embed", ["models_base_dir"]],
+            ["prompts", ["plain", "explained", "common_end"]],
             ["users", ["regular_users", "guest_ids"]],
-            ["keys", ["indexer", "regular_users", "guest_user"]],
+            ["keys", ["regular_users", "guest_user"]],
             ["mocking", ["answers_dir"]],
         ]:
             for item in itemlist:
@@ -263,11 +324,12 @@ def _fill_conf(conf, conf_path):
                 }
 
         for part, itemlist in [
-            ["local", ["note_html"]],
+            ["server", ["behind_proxy"]],
+            ["notices", ["note_users_html"]],
             ["data", ["pruning"]],
             ["users", ["with_guest"]],
             ["mocking", ["to_mock"]],
-            ["debugging", ["llm_answers", "feed_taking"]],
+            ["debugging", ["query_sifting", "feed_ingest"]],
         ]:
             for item in itemlist:
                 conf[part][item] = conf_raw[part][item]
@@ -277,7 +339,12 @@ def _fill_conf(conf, conf_path):
                     )
 
         for part, itemlist in [
-            ["ui", ["retain_user", "recall_searches"]],
+            ["ui", ["retain_user", "recall_sifts"]],
+            ["sifting", [
+                "pick_count_dense",
+                "pick_count_static",
+                "answer_max_count",
+            ]],
             ["mocking", ["mocking_delay"]],
         ]:
             for item in itemlist:
@@ -292,11 +359,9 @@ def _fill_conf(conf, conf_path):
                     )
 
         for part, itemlist in [
-            ["session", ["clue_len"]],
-            ["handshake", ["count", "first_bits"]],
-            ["feeds", ["feed_size"]],
+            ["server", ["port"]],
             ["data", ["kept_days"]],
-            ["llms", ["embed_batch_size", "query_top_count"]],
+            ["sifting", ["answer_max_count"]],
             ["users", ["guest_span"]],
         ]:
             for item in itemlist:
@@ -341,6 +406,44 @@ def _read_prompt_template(file_path):
     return "\n".join(lines)
 
 
+def _add_to_conf(conf):
+    # this value has to be kept fixed equal to the actual size
+    # of individual biorxiv RSS feeds
+    conf["feeds"]["feed_size"] = BIORXIV_FEED_SIZE
+
+    # parts of conf with mostly arbitrary values
+    conf["session"] = {
+        "clue_vis": "clue_one",
+        "clue_hid": "clue_two",
+        "clue_str": "clue_three",
+        "clue_len": 16,
+        "provided": "available",
+    }
+    conf["handshake"] = {
+        "count": 2,
+        "first_bits": 8,
+    }
+    # handshake_start is an auxiliary variable used during inital handshakes
+    # between a user and the arxifter server when a query is put to LLM
+    handshake_start = 2
+    for _ in range(conf["handshake"]["first_bits"] - 1):
+        handshake_start <<= 2
+        handshake_start += 2
+    conf["handshake"]["handshake_start"] = handshake_start
+    conf["query"] = {
+        "query_text": "query",
+        "to_explain": "explain",
+        "user_id": "user",
+        "is_guest": "guest",
+    }
+    conf["answer"] = {
+        "llm_response": "answer",
+        "sys_message": "message",
+    }
+
+    return conf
+
+
 def get_conf(conf_env_name):
     """
     Provides the configuration in a parsed form.
@@ -349,15 +452,14 @@ def get_conf(conf_env_name):
     """
     conf = {
         "server": {},
-        "session": {},
-        "handshake": {},
-        "query": {},
-        "answer": {},
         "view": {},
-        "local": {},
+        "backlink": {},
+        "notices": {},
         "ui": {},
         "feeds": {},
         "data": {},
+        "embed": {},
+        "sifting": {},
         "prompts": {},
         "llms": {},
         "users": {},
@@ -367,6 +469,7 @@ def get_conf(conf_env_name):
     }
     try:
         _fill_conf(conf, _get_conf_path(conf_env_name))
+        _add_to_conf(conf)
         _complete_conf(conf)
     except Exception as exc:
         conf = None

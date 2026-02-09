@@ -8,18 +8,16 @@ The articles are below.
 {context_str}
 ---------------------
 Given the articles (and your general knowledge of life sciences), \
-find all of those articles that match the query stated below.
+find those articles that match the following user query.
 Always return \
-the "artnum" parts of the relevant articles.
+the "artnum" part and first two words of "title" of the relevant articles.
 Provide the answer as a JSON list of structures, \
 so that it is easy to put it on web.
-If the count of articles that fit the query is too big, \
-choose those fitting articles that have the least "artnum" values.
+If more than {max_count} articles fit the query, \
+choose {max_count} of them that fit the query the best.
 If there is no matching article though, \
 find one article that is at least somehow related;
 and in such a case add a "matches":false key-value pair \
 to the output JSON structure, \
 so that it is clear that this article is not an exact match.
 Thank you.
-Query: {query_str}
-Answer: \

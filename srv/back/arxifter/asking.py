@@ -4,18 +4,17 @@ Management of processing the user questions on biorxiv feeds,
 with that being put to an LLM.
 """
 
-import os, time, asyncio
+import os, time, asyncio, functools
 
 from .setting import (
     SESSION_EXPIRED_KEY,
     MIN_QUERY_LEN,
     MAX_QUERY_LEN,
-    VECTORS_SUBDIR,
     DOCUMENTS_SUBDIR,
 )
 from .utils import get_current_data_dir
 from .keys import get_user_api_key
-from .loader import load_index
+from .loader import presift_docs
 from .mocking import get_mocked_answer
 from .querier import exec_query
 from .answerer import parse_llm_answer
@@ -54,17 +53,19 @@ def _get_question_parts(conf, query_data):
 
 
 async def answer_query_inner(
-    conf, logger, run_sync, query_data, subject_spec
+    conf, get_logger, executor, encoders, query_data, subject_spec
 ):
     """
     Processes the question on LLM:
     * takes/checks the required parameters,
-    * loads the indexed feeds,
-    * puts the question with the feeds and the respective prompt to LLM,
+    * loads the indexed feeds and presifts them according to the query,
+    * puts the question, presifted feeds and the respective prompt to LLM,
     * the LLM answer is parsed, forming a response for user.
     The LLM actions can be mocked instead of being put to LLM
     when it is set on in the configuration.
     """
+    logger = get_logger(__name__)
+
     if subject_spec not in conf["feeds"]["subjects"]["catalog"]:
         return {
             "ok": False,
@@ -83,7 +84,7 @@ async def answer_query_inner(
             f"query asked by {"guest" if is_guest else "user"}",
             f"to{"" if to_explain else " not"} get explained",
         ]))
-        if conf["debugging"]["llm_answers"]:
+        if conf["debugging"]["query_sifting"]:
             logger.debug(
                 f"query:\n{query_text}\n"
             )
@@ -145,25 +146,33 @@ async def answer_query_inner(
             "message": err_message,
         }
 
-    llm_index = None
-    time_loading_span = None
+    similar_articles = None
+    time_presifting_span = None
     try:
-        time_loading_start = time.time()
-        embed_dir = os.path.join(data_dir, subject_fs, VECTORS_SUBDIR)
-        llm_index = await run_sync(load_index)(
-            conf, data_dir, embed_dir, api_key
+        time_presifting_start = time.time()
+        loop = asyncio.get_event_loop()
+        similar_articles = await loop.run_in_executor(
+            executor,
+            functools.partial(
+                presift_docs,
+                conf=conf,
+                encoders=encoders,
+                data_dir=data_dir,
+                base_path=os.path.join(data_dir, subject_fs),
+                query=query_text,
+                get_logger=get_logger,
+            )
         )
-        time_loading_end = time.time()
-        time_loading_span = time_loading_end - time_loading_start
-        if llm_index is None:
-            raise OSError("could not load the embedded feeds")
+        time_presifting_span = time.time() - time_presifting_start
+        if similar_articles is None:
+            raise OSError("could not load the similar articles")
     except Exception as exc:
         logger.error(f"an error occurred: {str(exc)}")
         err_message = "could not do the query"
-        llm_index = None
+        similar_articles = None
 
     if (
-        (llm_index is None) and (not conf["mocking"]["to_mock"])
+        (similar_articles is None) and (not conf["mocking"]["to_mock"])
     ):
         return {
             "ok": False,
@@ -178,15 +187,20 @@ async def answer_query_inner(
                 await asyncio.sleep(conf["mocking"]["mocking_delay"])
         else:
             llm_answer = await exec_query(
-                conf, llm_index, query_text, to_explain, api_key)
-        time_asking_end = time.time()
-        time_asking_span = time_asking_end - time_asking_start
+                conf,
+                similar_articles,
+                query_text,
+                to_explain,
+                api_key,
+                get_logger,
+            )
+        time_asking_span = time.time() - time_asking_start
         got_answer = True
         logger.info(" ".join([
-            f"answer in {time_loading_span:.3f} s (index loading),",
+            f"answer in {time_presifting_span:.3f} s (presifting),",
             f"{time_asking_span:.3f} s (llm answering)",
         ]))
-        if conf["debugging"]["llm_answers"]:
+        if conf["debugging"]["query_sifting"]:
             logger.debug(llm_answer)
     except Exception as exc:
         logger.error(f"an error occurred: {str(exc)}")
@@ -202,7 +216,7 @@ async def answer_query_inner(
     parsed_answer = None
     has_parsed = False
     try:
-        parsed_answer = parse_llm_answer(logger, llm_answer)
+        parsed_answer = parse_llm_answer(conf, get_logger, llm_answer)
         has_parsed = True
     except Exception as exc:
         logger.warning(f"could not parse the answer data: {str(exc)}")
@@ -220,7 +234,9 @@ async def answer_query_inner(
     article_list = []
     try:
         docs_dir = os.path.join(data_dir, subject_fs, DOCUMENTS_SUBDIR)
-        article_list = form_response(logger, parsed_answer, docs_dir)
+        article_list = form_response(
+            get_logger, parsed_answer, similar_articles, docs_dir
+        )
         got_articles = True
     except Exception as exc:
         logger.warning(f"could not read the answer articles: {str(exc)}")

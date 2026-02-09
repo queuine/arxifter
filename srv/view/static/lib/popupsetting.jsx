@@ -10,13 +10,17 @@ class PopupSetting extends React.Component {
     constructor(props) {
         super(props);
         this.closePopup = props.closePopup;
-        this.maxSaveSearches = getFabricUi()["recallSearches"];
+        this.maxSaveSearches = getFabricUi()["recallSifts"];
         this.state = {
-            searchSaving: props.getSaveLastSearches()
+            searchSaving: props.getSaveLastSearches(),
+            autoFocusTA: props.getAutoFocusTA()
         };
         this.manageSearchSaving = (toSave) => {
             props.setSaveLastSearches(toSave);
             props.saveLastSearches(toSave);
+        };
+        this.manageAutoFocusTA = (toAutoFocus) => {
+            props.setAutoFocusTA(toAutoFocus);
         };
     }
 
@@ -49,14 +53,38 @@ class PopupSetting extends React.Component {
                             }}
                         />
                         <label
+                            id="popup-saving-label"
                             htmlFor="popup-saving-checkbox"
                         >
-                            Save locally the last {this.maxSaveSearches}
+                            save locally the last {this.maxSaveSearches}
                             {
                                 (this.maxSaveSearches != 1)
                                 ? " searches"
                                 : " search"
                             }
+                        </label>
+                    </div>
+                    <div id="popup-setting-ui">
+                        General UI configuration:
+                    </div>
+                    <div id="popup-setting-autofocus">
+                        <input
+                            type="checkbox"
+                            id="popup-setting-autofocus-checkbox"
+                            checked={this.state.autoFocusTA}
+                            onChange={(e) => {
+                                const toAutoFocus = e.target.checked;
+                                this.setState({
+                                    autoFocusTA: toAutoFocus
+                                });
+                                this.manageAutoFocusTA(toAutoFocus);
+                            }}
+                        />
+                        <label
+                            id="popup-setting-autofocus-label"
+                            htmlFor="popup-setting-autofocus-checkbox"
+                        >
+                            autofocus the query text area
                         </label>
                     </div>
                 </div>

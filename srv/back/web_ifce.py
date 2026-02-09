@@ -11,12 +11,14 @@ import sys, string, random
 import datetime as dt
 from urllib.parse import urlparse
 from collections import namedtuple
+from concurrent.futures import ThreadPoolExecutor as Executor
 import logging
 
-from quart import Quart, Response, request, jsonify, websocket
+from aiohttp import web
+from setproctitle import setproctitle
 
 from arxifter.setting import (
-    APP_NAME,
+    APP_NAME_WEB_IFCE,
     ENV_CONF_PATH,
     JS_FABRIC_PREFIX,
     APP_MAX_CONTENT_LENGTH,
@@ -26,7 +28,10 @@ from arxifter.setting import (
     SESSION_CLUE_LEN_BASE,
     SESSION_EXPIRED_KEY,
 )
-from arxifter.utils import origin_spec_to_parts
+from arxifter.utils import (
+    origin_spec_to_parts,
+    mute_hf,
+)
 from arxifter.config import get_conf
 from arxifter.fabric import get_fabric_js
 from arxifter.asking import answer_query_inner
@@ -34,46 +39,36 @@ from arxifter.guests import (
     ensure_guest_id,
     get_guests_json,
 )
+from arxifter.encoder import get_encoders
+
+# to not accidentaly download models from HF
+mute_hf()
 
 # conf holds the overall configuration of arxifter
 conf = get_conf(ENV_CONF_PATH)
 if conf is None:
     logging.error("configuration failed")
     sys.exit(1)
+presifting_encoders = get_encoders(conf, logging)
+if presifting_encoders is None:
+    logging.error("no presifting encoder was loaded")
+    sys.exit(1)
+
 # preparation for client checking
 conf_header_origin = origin_spec_to_parts(conf["server"]["header_origin"])
 
 logging_level = (
-    "DEBUG" if conf["debugging"]["llm_answers"] else "INFO"
+    "DEBUG" if conf["debugging"]["query_sifting"] else "INFO"
 )
 logging.getLogger().setLevel(logging.getLevelName(logging_level))
-logging.config.dictConfig({
-    "version": 1,
-    "loggers": {
-        APP_NAME: {"level": logging_level},
-    },
-})
 logging.basicConfig(format='[%(asctime)s] %(levelname)s %(message)s')
 
 # fabric_js holds the part of configuration relevant for UI
 fabric_js = get_fabric_js(conf, JS_FABRIC_PREFIX)
 # path_prefix is used for setting where the arxifter listens for connections
-path_prefix = conf["server"]["path_prefix"]
-# handshake_start is an auxiliary variable used during an inital handshake
-# between a user and the arxifter server the user's question is put to LLM
-handshake_start = 2
-for idx in range(conf["handshake"]["first_bits"] - 1):
-    handshake_start <<= 2
-    handshake_start += 2
+path_prefix = conf["view"]["path_prefix"]
 
-app = Quart(
-    __name__,
-    static_folder=conf["view"]["static_dir"]["path"],
-    static_url_path=f"{path_prefix}/static"
-)
-app.name = APP_NAME
-app.config["MAX_CONTENT_LENGTH"] = APP_MAX_CONTENT_LENGTH
-app.config["RESPONSE_TIMEOUT"] = APP_RESPONSE_TIMEOUT
+routes = web.RouteTableDef()
 
 
 def get_client_ip(headers, remote_addr):
@@ -86,19 +81,21 @@ def get_client_ip(headers, remote_addr):
     )
 
 
-def get_logger_with_client_ip(logger, where, client_ip):
+def get_logging_with_client_ip(logger, client_ip):
     """
     Adds the provided (user) IP address to the logger methods,
     along with the specified effective location of the logger.
     """
-    prefix = f"({client_ip}) in {where}: "
-    Logger = namedtuple("Logger", ["debug", "info", "warning", "error"])
-    return Logger(
-        debug=(lambda msg: logger.debug(prefix + str(msg))),
-        info=(lambda msg: logger.info(prefix + str(msg))),
-        warning=(lambda msg: logger.warning(prefix + str(msg))),
-        error=(lambda msg: logger.error(prefix + str(msg))),
-    )
+    def get_logger(logger, client_ip, where):
+        prefix = f"({client_ip}) in {where}: "
+        Logger = namedtuple("Logger", ["debug", "info", "warning", "error"])
+        return Logger(
+            debug=(lambda msg: logger.debug(prefix + str(msg))),
+            info=(lambda msg: logger.info(prefix + str(msg))),
+            warning=(lambda msg: logger.warning(prefix + str(msg))),
+            error=(lambda msg: logger.error(prefix + str(msg))),
+        )
+    return lambda where: get_logger(logger, client_ip, where)
 
 
 def check_client_permissible(headers):
@@ -129,43 +126,42 @@ def check_client_permissible(headers):
     return True
 
 
-@app.route(f"{path_prefix}/", methods=["GET"])
-async def main_page():
+@routes.get(f"{path_prefix}/")
+async def main_page(request):
     """
     The page that is visible to users as the arxifter UI.
     """
-    return Response(
-        conf["view"]["main_page"]["rendered"],
-        mimetype="text/html"
+    return web.Response(
+        text=conf["view"]["main_page"]["rendered"],
+        content_type="text/html",
     )
 
 
-@app.route(f"{path_prefix}/config/js/fabric.js", methods=["GET"])
-async def config_fabric():
+@routes.get(f"{path_prefix}/config/js/fabric.js")
+async def config_fabric(request):
     """
     Serves the UI-related configuration.
     """
-    return Response(
-        fabric_js,
-        mimetype="text/javascript"
+    return web.Response(
+        text=fabric_js,
+        content_type="text/javascript",
     )
 
 
-@app.route(f"{path_prefix}/session/guests", methods=["POST"])
-async def provide_guests():
+@routes.post(f"{path_prefix}/session/guests")
+async def provide_guests(request):
     """
     Provides guest status for the arxifter users that are not regular users.
     Guest status is only provided when it is enabled in configuration.
     """
-    logger = get_logger_with_client_ip(
+    logger = get_logging_with_client_ip(
         app.logger,
-        "provide_guests",
-        get_client_ip(request.headers, request.remote_addr),
-    )
+        get_client_ip(request.headers, request.remote),
+    )("provide_guests")
     logger.info("guests got requested")
     if not check_client_permissible(request.headers):
         logger.info("guests request not permissible")
-        return "", 403
+        return web.json_response({"available": []})
 
     # to check provided clues first;
     got_clues = False
@@ -174,7 +170,7 @@ async def provide_guests():
         key_vis = conf["session"]["clue_vis"]
         key_hid = conf["session"]["clue_hid"]
         key_str = conf["session"]["clue_str"]
-        data = await request.get_json()
+        data = await request.json()
         clue_str = data[key_str]
         if (
             (data[key_vis] is True)
@@ -211,9 +207,7 @@ async def provide_guests():
 
     if (not conf["users"]["with_guest"]) or (not got_clues):
         logger.info("no guests got provided")
-        return jsonify(
-            available=[],
-        )
+        return web.json_response({"available": []})
 
     current_dt = dt.datetime.now(dt.UTC)
     await ensure_guest_id(conf, current_dt)
@@ -223,13 +217,11 @@ async def provide_guests():
         conf["session"]["provided"]: guest_list,
     }
 
-    return jsonify(
-        **response,
-    )
+    return web.json_response(response)
 
 
-@app.websocket(f"{path_prefix}/query/<subject_spec>")
-async def answer_query(subject_spec):
+@routes.get(f"{path_prefix}/query/" + "{subject_spec}")
+async def answer_query(request):
     """
     Serving for putting users' questions to LLMs
     and putting the LLM answers back to users.
@@ -237,27 +229,29 @@ async def answer_query(subject_spec):
     * either regular users,
     * or guests if it is enabled in configuration.
     """
-    logger = get_logger_with_client_ip(
+    subject_spec = request.match_info["subject_spec"]
+
+    get_logger = get_logging_with_client_ip(
         app.logger,
-        "answer_query",
-        get_client_ip(websocket.headers, websocket.remote_addr),
+        get_client_ip(request.headers, request.remote),
     )
-    logger_inner = get_logger_with_client_ip(
-        app.logger,
-        "answer_query_inner",
-        get_client_ip(websocket.headers, websocket.remote_addr),
-    )
+    logger = get_logger("answer_query")
     logger.info(f"query got asked on {subject_spec}")
-    if not check_client_permissible(websocket.headers):
+    if not check_client_permissible(request.headers):
         logger.info("query request not permissible")
-        await websocket.close(403)
-        return
+        return web.json_response("{}")
+
+    websocket = web.WebSocketResponse(
+        receive_timeout=APP_RESPONSE_TIMEOUT,
+        max_msg_size=APP_MAX_CONTENT_LENGTH,
+    )
+    await websocket.prepare(request)
 
     try:
         # to make handshake first
         can_follow = True
         data_prev = 0
-        data_sent = handshake_start
+        data_sent = conf["handshake"]["handshake_start"]
         for _ in range(conf["handshake"]["count"]):
             data_recv = await websocket.receive_json()
             if type(data_recv) is not int:
@@ -270,18 +264,26 @@ async def answer_query(subject_spec):
             data_sent = random.randint(0, 1_000_000)
             await websocket.send_json(data_sent)
 
+        if can_follow:
+            query_data = await websocket.receive_json()
+            data_asked = str(abs(data_prev - data_sent))
+            if data_asked in query_data:
+                del query_data[data_asked]
+            else:
+                can_follow = False
+
         if not can_follow:
             logger.info("query handshake did not happen")
-            await websocket.close(401)
-            return
+            await websocket.close()
+            return websocket
 
-        query_data = await websocket.receive_json()
         res = await answer_query_inner(
             conf,
-            logger_inner,
-            app.sync_to_async,
+            get_logger,
+            request.app["executor"],
+            presifting_encoders,
             query_data,
-            subject_spec
+            subject_spec,
         )
         logger.info(f"state after querying: {res["ok"]}")
 
@@ -294,20 +296,40 @@ async def answer_query(subject_spec):
         if res.get(SESSION_EXPIRED_KEY, False):
             sift_response[SESSION_EXPIRED_KEY] = True
 
-        await websocket.send_json(
-            **sift_response,
-        )
-        await websocket.close(200)
-        return
+        await websocket.send_json(sift_response)
+        await websocket.close()
+        return websocket
     except Exception as exc:
         logger.info(
             "could not do the querying: " + str(exc)
         )
         try:
-            await websocket.close(500)
+            await websocket.close()
         except Exception:
             pass
 
+    return websocket
+
+
+app = web.Application()
+app["executor"] = Executor(max_workers=2)
+app.add_routes(routes)
+if not conf["server"]["behind_proxy"]:
+    app.add_routes([
+        web.static(
+            f"{path_prefix}/static",
+            conf["view"]["static_dir"]["path"],
+        )
+    ])
 
 if __name__ == "__main__":
-    app.run()
+    setproctitle(APP_NAME_WEB_IFCE)
+    log_ip_spec = (
+        "{X-Forwarded-For}i" if conf["server"]["behind_proxy"] else "a"
+    )
+    web.run_app(
+        app,
+        port=conf["server"]["port"],
+        host=conf["server"]["address"],
+        access_log_format="(%" + log_ip_spec + ") %r %s",
+    )

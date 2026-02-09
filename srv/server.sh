@@ -3,11 +3,12 @@
 # Serves the UI interface to arxifter.
 #
 
-BASEDIR=/arxifter
+BASEDIR=/app/arxifter
 cd ${BASEDIR}/srv/back;
 
 CONF_PATH=${BASEDIR}/srv/conf/arxifter.toml
 CONF_ENV_VAR=`python -m arxifter conf env`
 export ${CONF_ENV_VAR}=${CONF_PATH}
 
-hypercorn --bind "0.0.0.0:5000" --graceful-timeout 30 app:app
+python ./web_ifce.py
+

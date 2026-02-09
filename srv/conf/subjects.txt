@@ -1,4 +1,3 @@
-all
 animal_behavior_and_cognition
 biochemistry
 bioengineering
@@ -11,7 +10,6 @@ ecology
 evolutionary_biology
 genetics
 genomics
-genomics+bioinformatics
 immunology
 microbiology
 molecular_biology

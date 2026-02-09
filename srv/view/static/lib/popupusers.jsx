@@ -12,7 +12,7 @@ class PopupUsers extends React.Component {
         this.closePopup = props.closePopup;
         this.setupGuestSession = props.setupGuestSession;
         this.idRemembered = props.getIdRemembered();
-        this.noteText = getFabricLocal()["noteUsers"];
+        this.noteText = getFabricNotices()["noteUsers"];
         this.withGuest = getFabricUsers()["withGuest"];
         this.sessionStates = {
             NO: 0,
@@ -24,7 +24,7 @@ class PopupUsers extends React.Component {
         this.state = {
             userId: this.idRemembered,
             toRemember: this.idRemembered ? true : false,
-            asGuest: props.getIsGuest(),
+            asGuest: props.getIsGuest() && this.withGuest,
             hasAgreed: false,
             isLaborer: false,
             guestId: "",
@@ -74,10 +74,17 @@ class PopupUsers extends React.Component {
     }
 
     render() {
+        const idRetentionLabel = (
+            "The id is kept in a cookie when it is remembered."
+        );
+        const agreeEvaluationLabel = (
+            "Agree to the evaluation-only use."
+        );
+
         return (
             <div open className="arxifter-popup">
                 <div id="popup-users-top">
-                    {getFabricLocal()["noteHtml"]
+                    {getFabricNotices()["noteUsersHtml"]
                     ?
                     <span
                         dangerouslySetInnerHTML={{
@@ -96,7 +103,7 @@ class PopupUsers extends React.Component {
                             ?
                             "Click to switch to the regular-user mode."
                             :
-                            "Fill in the user id."
+                            "Fill in your user id."
                         }
                         htmlFor="popup-users-input-user"
                         className={
@@ -132,8 +139,9 @@ class PopupUsers extends React.Component {
                             "popup-users-form-label-invisible"
                         }
                         id="popup-users-input-user"
+                        title="Fill in your user id if you already have one."
                         ref={this.inputRef}
-                        autofocus={this.state.asGuest ? 'false' : 'true'}
+                        autofocus={this.state.asGuest ? false : 'true'}
                         disabled={this.state.asGuest ? true : false}
                         value={this.state.userId}
                         onChange={(e) => {
@@ -146,6 +154,7 @@ class PopupUsers extends React.Component {
                     <input
                         type="checkbox"
                         id="popup-users-checkbox-remember"
+                        title={idRetentionLabel}
                         disabled={this.state.asGuest ? true : false}
                         checked={this.state.toRemember}
                         onChange={(e) => {
@@ -155,6 +164,7 @@ class PopupUsers extends React.Component {
                         }}
                     />
                     <label
+                        title={idRetentionLabel}
                         htmlFor="popup-users-checkbox-remember"
                         className={
                             this.state.asGuest
@@ -166,8 +176,8 @@ class PopupUsers extends React.Component {
                             :
                             "popup-users-form-label-inner"
                         }
-                        >
-                        remember id
+                    >
+                        remember the id
                     </label>
                     {this.withGuest &&
                     <>
@@ -177,7 +187,7 @@ class PopupUsers extends React.Component {
                             title={
                                 this.state.asGuest
                                 ?
-                                "Agree to the evaluation-only use."
+                                agreeEvaluationLabel
                                 :
                                 "Click to switch to the guest-user mode."
                             }
@@ -209,8 +219,9 @@ class PopupUsers extends React.Component {
                         <input
                             type="checkbox"
                             id="popup-users-checkbox-guest-agrees"
+                            title={agreeEvaluationLabel}
                             ref={this.agreeRef}
-                            autofocus={this.state.asGuest ? 'true' : 'false'}
+                            autofocus={this.state.asGuest ? 'true' : false}
                             disabled={this.state.asGuest ? false : true}
                             onChange={(e) => {
                                 this.setState({
@@ -220,6 +231,7 @@ class PopupUsers extends React.Component {
                             }}
                         />
                         <label
+                            title="Contact us in case of a regular use."
                             htmlFor="popup-users-checkbox-guest-agrees"
                             className={
                                 this.state.asGuest

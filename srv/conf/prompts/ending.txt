@@ -1,0 +1,5 @@
+The user's query:
+---------------------
+{query_str}
+---------------------
+Your answer in JSON format: \

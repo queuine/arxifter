@@ -1,7 +1,11 @@
 json-repair
 feedparser
-quart
-hypercorn
-llama-index-core
-llama-index-llms-openai
-llama-index-embeddings-openai
+numpy
+spacy
+model2vec
+onnxruntime
+fastembed
+hnswlib
+aiohttp
+openai
+setproctitle

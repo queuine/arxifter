@@ -3,7 +3,7 @@
 Assorted auxiliary functions.
 """
 
-import os, re
+import os, json, re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -23,6 +23,12 @@ from .setting import (
     FEED_MATCH_SYMS_SUP,
     FEED_MATCH_SYMS,
     FEED_REPLS_SYMS,
+    FEED_MATCH_LISTS,
+    FEED_FLANK_LISTS,
+    INFO_FILE_NAME,
+    STATIC_EMBED_MODEL_NAME_KEY,
+    DENSE_EMBED_MODEL_NAME_KEY,
+    ENV_HF_MUTE,
 )
 
 
@@ -61,6 +67,15 @@ def _replace_marks_syms(match_obj):
     ])
 
 
+def _replace_marks_lists(match_obj):
+    flanks = FEED_FLANK_LISTS.get(match_obj.group(1), ["", ""])
+    return "".join([
+        flanks[0],
+        match_obj.group(2),
+        flanks[1],
+    ])
+
+
 def replace_marks(text):
     """
     Text parts of feeds contain some marks in strange forms.
@@ -72,6 +87,7 @@ def replace_marks(text):
         [FEED_MATCH_ONOFF, _replace_marks_onoff],
         [FEED_MATCH_SYMS_SUP, _replace_marks_syms_sup],
         [FEED_MATCH_SYMS, _replace_marks_syms],
+        [FEED_MATCH_LISTS, _replace_marks_lists],
     ]:
         text = re.sub(pattern, replacer, text)
 
@@ -183,3 +199,76 @@ def get_doc_name(rank):
     Name of a JSON doc with data from an entry of a RSS feed.
     """
     return str(rank).zfill(3) + ".json"
+
+
+def check_encoders_info(encoders_info, encoders):
+    """
+    Checks whether encoder names are the same for a given info
+    (that was read from a previously saved info file)
+    and currently loaded encoders.
+    """
+    for info_key, enc_key in [
+        [STATIC_EMBED_MODEL_NAME_KEY, "static"],
+        [DENSE_EMBED_MODEL_NAME_KEY, "dense"],
+    ]:
+        if encoders_info[info_key] != encoders[enc_key]["name"]:
+            return False
+
+    return True
+
+
+def load_encoders_info(data_dir):
+    """
+    Loads the names of the encoders used at a feed ingest.
+    """
+    encoders_info = {}
+    file_path = os.path.join(
+        data_dir,
+        INFO_FILE_NAME,
+    )
+    try:
+        with open(file_path, encoding="utf8") as fh:
+            encoders_info = json.load(fh)
+            if type(encoders_info) is not dict:
+                encoders_info = {}
+    except Exception:
+        encoders_info = {}
+
+    for key in [
+        STATIC_EMBED_MODEL_NAME_KEY,
+        DENSE_EMBED_MODEL_NAME_KEY
+    ]:
+        if key not in encoders_info:
+            encoders_info[key] = None
+
+    return encoders_info
+
+
+def save_encoders_info(data_dir, encoders):
+    """
+    Saves the names of the encoders used during a feed ingest.
+    """
+    file_path = os.path.join(
+        data_dir,
+        INFO_FILE_NAME,
+    )
+    encoders_info = {
+        STATIC_EMBED_MODEL_NAME_KEY: encoders["static"]["name"],
+        DENSE_EMBED_MODEL_NAME_KEY: encoders["dense"]["name"],
+    }
+    try:
+        with open(file_path, "w", encoding="utf8") as fh:
+            json.dump(encoders_info, fh)
+        info_written = True
+    except Exception:
+        info_written = False
+
+    return info_written
+
+
+def mute_hf():
+    """
+    Makes the use of HF purely local.
+    """
+    for env_key in ENV_HF_MUTE:
+        os.environ[env_key] = "1"

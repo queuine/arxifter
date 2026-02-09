@@ -9,15 +9,15 @@ const ReactDOM = window.ReactDOM ?? (await import('react-dom'));
 function ArxifterTop(props) {
   const openPopupSetting = props.openPopupSetting;
   const openPopupUsers = props.openPopupUsers;
-  const fabricLocal = getFabricLocal();
+  const fabricBacklink = getFabricBacklink();
   return /*#__PURE__*/React.createElement("div", {
     id: "arxifter-top"
   }, /*#__PURE__*/React.createElement("a", {
     id: "arxifter-top-backlink",
-    href: fabricLocal["backLink"],
-    title: fabricLocal["backTitle"],
+    href: fabricBacklink["link"],
+    title: fabricBacklink["title"],
     target: "_blank"
-  }, fabricLocal["backName"]), /*#__PURE__*/React.createElement("div", {
+  }, fabricBacklink["name"]), /*#__PURE__*/React.createElement("div", {
     id: "arxifter-top-buttons-outer"
   }, /*#__PURE__*/React.createElement("button", {
     id: "arxifter-top-button-setting",

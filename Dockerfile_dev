@@ -1,12 +1,15 @@
-FROM python:3.12
+FROM python:3.12-slim
 RUN apt update \
     && apt install -y \
+        procps \
+        psmisc \
+        g++ \
         make \
         node-babel7 \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 RUN echo "alias ll='ls -lva --group-directories-first'" >> /root/.bashrc
-WORKDIR /arxifter
+WORKDIR /app/arxifter
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 EXPOSE 5000

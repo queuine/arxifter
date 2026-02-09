@@ -3,7 +3,7 @@
 # Prunes the downloaded and indexed feeds.
 #
 
-BASEDIR=/arxifter
+BASEDIR=/app/arxifter
 cd ${BASEDIR}/srv/back;
 
 CONF_PATH=${BASEDIR}/srv/conf/arxifter.toml

@@ -13,7 +13,8 @@ class FormQuery extends React.Component {
     this.textareaRef = React.createRef();
     this.textareaIdName = "form-query-textarea";
     this.state = {
-      underEmpty: false
+      underEmpty: false,
+      autoFocus: props.autoFocus
     };
     this.setUnderEmpty = val => {
       this.setState({
@@ -23,8 +24,13 @@ class FormQuery extends React.Component {
         this.textareaRef.current?.focus();
       }
     };
+    this.setAutoFocus = val => {
+      this.setState({
+        autoFocus: val
+      });
+    };
     this.queryLabel = "" + `Query on the last ${this.lastArticlesCount} articles ` + "(per feed) at bioRχiv";
-    this.queryPlaceholder = ["", "Enter a search query for LLM to sift through bioRχiv feeds.", "It can be e.g. 'List all articles related to bacteria.'"].join("\n    ");
+    this.queryPlaceholder = ["", "Enter a query for LLM for sifting through bioRχiv feeds.", "It can be e.g. 'All on membranes, especially in neurons.'"].join("\n    ");
   }
   render() {
     return /*#__PURE__*/React.createElement("div", {
@@ -33,7 +39,7 @@ class FormQuery extends React.Component {
       id: "form-query-roof"
     }, /*#__PURE__*/React.createElement("label", {
       id: "form-query-title",
-      title: "LLM picks out articles from the selected bioRχiv" + " feed according to the query entered below",
+      title: "LLM presents articles from the selected bioRχiv" + " feed according to the query entered below",
       htmlFor: this.textareaIdName
     }, this.queryLabel), this.children), /*#__PURE__*/React.createElement("textarea", {
       ref: this.textareaRef,
@@ -43,7 +49,7 @@ class FormQuery extends React.Component {
       cols: 80,
       maxlength: utilsGetMaxQueryLength(),
       placeholder: this.queryPlaceholder,
-      autofocus: "true",
+      autofocus: this.state.autoFocus ? 'true' : false,
       onChange: e => {
         this.setUnderEmpty(false);
       },

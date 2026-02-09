@@ -15,9 +15,53 @@ def _camelize(name):
     ])
 
 
-def _get_conf_server(conf):
+def _get_conf_view(conf):
     return {
-        _camelize("path_prefix"): conf["server"]["path_prefix"],
+        _camelize("path_prefix"): conf["view"]["path_prefix"],
+    }
+
+
+def _get_conf_backlink(conf):
+    return {
+        _camelize("name"): conf["backlink"]["name"],
+        _camelize("link"): conf["backlink"]["link"],
+        _camelize("title"): conf["backlink"]["title"],
+    }
+
+
+def _get_conf_notices(conf):
+    return {
+        _camelize("note_users"): conf["notices"]["note_users"]["content"],
+        _camelize("note_users_html"): conf["notices"]["note_users_html"],
+    }
+
+
+def _get_conf_ui(conf):
+    return {
+        _camelize("user_id"): conf["ui"]["user_id"],
+        _camelize("retain_user"): conf["ui"]["retain_user"],
+        _camelize("storage_prefix"): conf["ui"]["storage_prefix"],
+        _camelize("recall_sifts"): conf["ui"]["recall_sifts"],
+    }
+
+
+def _get_conf_feeds(conf):
+    return {
+        _camelize("subjects"): list(conf["feeds"]["subjects"]["catalog"]),
+        _camelize("default_subject"): conf["feeds"]["default_subject"],
+        _camelize("feed_size"): conf["feeds"]["feed_size"],
+    }
+
+
+def _get_conf_sifting(conf):
+    return {
+        _camelize("answer_max_count"): conf["sifting"]["answer_max_count"],
+    }
+
+
+def _get_conf_users(conf):
+    return {
+        _camelize("with_guest"): conf["users"]["with_guest"],
     }
 
 
@@ -54,45 +98,6 @@ def _get_conf_answer(conf):
     }
 
 
-def _get_conf_local(conf):
-    return {
-        _camelize("back_name"): conf["local"]["back_name"],
-        _camelize("back_link"): conf["local"]["back_link"],
-        _camelize("back_title"): conf["local"]["back_title"],
-        _camelize("note_users"): conf["local"]["note_users"]["content"],
-        _camelize("note_html"): conf["local"]["note_html"],
-    }
-
-
-def _get_conf_ui(conf):
-    return {
-        _camelize("user_id"): conf["ui"]["user_id"],
-        _camelize("retain_user"): conf["ui"]["retain_user"],
-        _camelize("storage_prefix"): conf["ui"]["storage_prefix"],
-        _camelize("recall_searches"): conf["ui"]["recall_searches"],
-    }
-
-
-def _get_conf_feeds(conf):
-    return {
-        _camelize("subjects"): list(conf["feeds"]["subjects"]["catalog"]),
-        _camelize("default_subject"): conf["feeds"]["default_subject"],
-        _camelize("feed_size"): conf["feeds"]["feed_size"],
-    }
-
-
-def _get_conf_llms(conf):
-    return {
-        _camelize("query_top_count"): conf["llms"]["query_top_count"],
-    }
-
-
-def _get_conf_users(conf):
-    return {
-        _camelize("with_guest"): conf["users"]["with_guest"],
-    }
-
-
 def _turn_config_to_return(config):
     return ("\n".join([
         ((" " * INDENT_SIZE) + line) for line in (
@@ -112,15 +117,16 @@ def get_fabric_js(conf, prefix):
             "}",
             "",
         ]) for part, func in [
-            ["server", _get_conf_server],
+            ["view", _get_conf_view],
+            ["backlink", _get_conf_backlink],
+            ["notices", _get_conf_notices],
+            ["ui", _get_conf_ui],
+            ["feeds", _get_conf_feeds],
+            ["sifting", _get_conf_sifting],
+            ["users", _get_conf_users],
             ["session", _get_conf_session],
             ["handshake", _get_conf_handshake],
             ["query", _get_conf_query],
             ["answer", _get_conf_answer],
-            ["local", _get_conf_local],
-            ["ui", _get_conf_ui],
-            ["feeds", _get_conf_feeds],
-            ["llms", _get_conf_llms],
-            ["users", _get_conf_users],
         ]
     ])

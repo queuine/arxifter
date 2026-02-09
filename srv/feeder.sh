@@ -3,7 +3,7 @@
 # Downloads RSS feeds from bioRχiv and LLM-indexes them.
 #
 
-BASEDIR=/arxifter
+BASEDIR=/app/arxifter
 cd ${BASEDIR}/srv/back;
 
 CONF_PATH=${BASEDIR}/srv/conf/arxifter.toml

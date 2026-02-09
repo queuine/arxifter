@@ -15,15 +15,15 @@ function storageGetPrefix(prefix) {
     return prefix + separator;
 };
 
-// name for the item keeping the last searches
-function storageGetLabelSearches(prefix) {
-    return storageGetPrefix(prefix) + "searchesLast";
+// name for the item keeping the last sifts
+function storageGetLabelSifts(prefix) {
+    return storageGetPrefix(prefix) + "siftsLast";
 };
 
-// save the last searches
-function storageSaveSearches(prefix, searchList, maxCount) {
-    let searchesToSave = [];
-    searchList.slice(-maxCount).forEach((item) => {
+// save the last sifts
+function storageSaveSifts(prefix, siftingList, maxCount) {
+    let siftsToSave = [];
+    siftingList.slice(-maxCount).forEach((item) => {
         if (
             (item.question !== null)
             && (item.answers.length != 0)
@@ -39,29 +39,29 @@ function storageSaveSearches(prefix, searchList, maxCount) {
                 )
             )
         ) {
-            searchesToSave.push(item);
+            siftsToSave.push(item);
         }
     });
     localStorage.setItem(
-        storageGetLabelSearches(prefix),
-        JSON.stringify(searchesToSave)
+        storageGetLabelSifts(prefix),
+        JSON.stringify(siftsToSave)
     );
 };
 
-// take the last searches
-function storageLoadSearches(prefix, jsonrepair) {
-    const storedSearches = localStorage.getItem(
-        storageGetLabelSearches(prefix)
+// take the last sifts
+function storageLoadSifts(prefix, jsonrepair) {
+    const storedSifts = localStorage.getItem(
+        storageGetLabelSifts(prefix)
     );
-    if (storedSearches === null) {
+    if (storedSifts === null) {
         return [];
     }
-    let parsedSearches = [];
+    let parsedSifts = [];
     let parsingError = false;
     try {
-        parsedSearches = JSON.parse(storedSearches);
+        parsedSifts = JSON.parse(storedSifts);
     } catch (e) {
-        parsedSearches = [];
+        parsedSifts = [];
         parsingError = true;
     }
     if (parsingError) {
@@ -71,20 +71,20 @@ function storageLoadSearches(prefix, jsonrepair) {
         // And since such a truncating occurred once during testing,
         // it is better to consider it as a possibility.
         try {
-            parsedSearches = JSON.parse(
-                jsonrepair(storedSearches)
+            parsedSifts = JSON.parse(
+                jsonrepair(storedSifts)
             );
         } catch (e) {
-            parsedSearches = [];
+            parsedSifts = [];
         }
     }
-    return utilsCheckSearchList(parsedSearches);
+    return utilsCheckSiftsList(parsedSifts);
 };
 
-// remove the last searches
-function storageCleanSearches(prefix) {
+// remove the last sifts
+function storageCleanSifts(prefix) {
     localStorage.removeItem(
-        storageGetLabelSearches(prefix)
+        storageGetLabelSifts(prefix)
     );
 };
 
@@ -103,6 +103,11 @@ function storageGetItemNameSaving() {
     return "setupSaving";
 };
 
+// name for the item keeping the setup related to UI configuration
+function storageGetItemNameUI() {
+    return "setupUI";
+};
+
 // the key for value of whether the user is guest
 function storageGetKeyIsGuest() {
     return "asGuest";
@@ -119,14 +124,19 @@ function storageGetKeySiftedFeed() {
 };
 
 // the key for value of whether results should be saved locally
-function storageGetKeySaveSearches() {
-    return "searchesLast";
+function storageGetKeySaveSifts() {
+    return "siftsLast";
+};
+
+// the key for value of whether text area should get auto-focused
+function storageGetKeyAutoFocusTA() {
+    return "autoFocusTA";
 };
 
 // take default values of the user-related setup
 function storageGetDefaultSetupUsers() {
     return {
-        [storageGetKeyIsGuest()]: false,
+        [storageGetKeyIsGuest()]: true,
     };
 };
 
@@ -141,7 +151,14 @@ function storageGetDefaultSetupAsking() {
 // take default values of the saving-related setup
 function storageGetDefaultSetupSaving() {
     return {
-        [storageGetKeySaveSearches()]: true
+        [storageGetKeySaveSifts()]: true
+    };
+};
+
+// take default values of the UI-related setup
+function storageGetDefaultSetupUI() {
+    return {
+        [storageGetKeyAutoFocusTA()]: true
     };
 };
 
@@ -197,6 +214,15 @@ function storageLoadSetupSaving(prefix) {
     );
 };
 
+// taking the UI-related setup
+function storageLoadSetupUI(prefix) {
+    return storageLoadSetup(
+        prefix,
+        storageGetItemNameUI(),
+        storageGetDefaultSetupUI()
+    );
+};
+
 // generally saving a setup
 function storageSaveSetup(prefix, label, setup) {
     localStorage.setItem(
@@ -238,6 +264,17 @@ function storageSaveSetupSaving(prefix, key, value) {
     );
 };
 
+// saving the UI-related setup
+function storageSaveSetupUI(prefix, key, value) {
+    let setup = storageLoadSetupUI(prefix);
+    setup[key] = value;
+    storageSaveSetup(
+        prefix,
+        storageGetItemNameUI(),
+        setup
+    );
+};
+
 // take whether the user is supposed to be a guest
 function storageLoadSetupIsGuest(prefix) {
     return storageLoadSetupUsers(prefix)[storageGetKeyIsGuest()];
@@ -253,9 +290,14 @@ function storageLoadSetupSiftedFeed(prefix) {
     return storageLoadSetupAsking(prefix)[storageGetKeySiftedFeed()];
 };
 
-// take whether the last searches should be saved locally
-function storageLoadSetupSaveSearches(prefix) {
-    return storageLoadSetupSaving(prefix)[storageGetKeySaveSearches()];
+// take whether the last sifts should be saved locally
+function storageLoadSetupSaveSifts(prefix) {
+    return storageLoadSetupSaving(prefix)[storageGetKeySaveSifts()];
+};
+
+// take whether the query text area should be auto-focused
+function storageLoadSetupAutoFocusTA(prefix) {
+    return storageLoadSetupUI(prefix)[storageGetKeyAutoFocusTA()];
 };
 
 // save whether the user is supposed to be a guest
@@ -273,7 +315,12 @@ function storageSaveSetupSiftedFeed(prefix, value) {
     storageSaveSetupAsking(prefix, storageGetKeySiftedFeed(), value);
 };
 
-// save whether the last searches should be saved locally
-function storageSaveSetupSaveSearches(prefix, value) {
-    storageSaveSetupSaving(prefix, storageGetKeySaveSearches(), value);
+// save whether the last sifts should be saved locally
+function storageSaveSetupSaveSifts(prefix, value) {
+    storageSaveSetupSaving(prefix, storageGetKeySaveSifts(), value);
+};
+
+// save whether the query text area should be auto-focused
+function storageSaveSetupAutoFocusTA(prefix, value) {
+    storageSaveSetupUI(prefix, storageGetKeyAutoFocusTA(), value);
 };

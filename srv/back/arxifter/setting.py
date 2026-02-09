@@ -15,11 +15,13 @@ ENV_CONF_PATH = "ARXIFTER_CONFIG_PATH"
 NEW_DIRS_MODE = 0o755
 
 # web server
-APP_NAME = "arxifter"
-APP_MAX_CONTENT_LENGTH = 1024 * 1024
+APP_NAME_WEB_IFCE = "arxifter-web-ifce"
+APP_MAX_CONTENT_LENGTH = 100 * 1024
 APP_RESPONSE_TIMEOUT = 120
 
 # command line interface
+APP_NAME_FEED_INGEST = "arxifter-feed-ingest"
+APP_NAME_FEED_PRUNING = "arxifter-feed-pruning"
 COMMAND_CONFIG = "conf"
 COMMAND_CONFIG_ENV = "env"
 COMMAND_CONFIG_TEST = "test"
@@ -28,6 +30,7 @@ COMMAND_FEEDS_INGEST = "ingest"
 COMMAND_FEEDS_PRUNE = "prune"
 COMMAND_TESTS = "test"
 COMMAND_TESTS_FEED_PARSING = "feed-parsing"
+COMMAND_TESTS_FEED_INDEXING = "feed-indexing"
 
 # general use
 TRUTH_VALUES_STR = ["1", "y", "yes", "t", "true", "truth", "on", "ok"]
@@ -40,13 +43,27 @@ ARTICLE_KEY_RANK_VAR = ["art", "num"]
 # non-matching answers
 LLM_MATCHES_KEYS = ["match"]
 LLM_SUGGESTION_KEY = "instead"
+# repairing the naswers
+JSON_START_REMOVALS = ["```json", "```"]
+JSON_END_REMOVALS = ["```"]
+ARTICLE_RECOGNIZING_THRESHOLD = 0.1
 
 # data storage
 DATA_DIR_PERM = "perm"
 DATA_DIR_CURR = "curr"
 DOCUMENTS_SUBDIR = "docs"
-DOCUMENTS_FOR_VECTORS_SUBDIR = "docs4vecs"
 VECTORS_SUBDIR = "vecs"
+HNSWDATA_SUBDIR = "hnsw"
+# static embeddings
+HNSWDATA_SPACE = "ip"
+HNSWDATA_INDEX = "hnsw_index.bin"
+HNSWDATA_LABELS = "hnsw_labels.npy"
+HNSWDATA_PARTS = "sentences.json"
+PRESIFTING_STATIC_OVERHANG = 5
+# tests
+DATA_DIR_TEST = "test"
+DATA_DIR_TEST_CURR = "curr"
+DATA_DIR_TEST_PREV = "prev"
 
 # questions on LLM
 MIN_QUERY_LEN = 3
@@ -62,9 +79,11 @@ CONFIG_OTHER_LETTERS = [".", "_", "-"]
 JS_FABRIC_PREFIX = "get_fabric_"
 INDENT_SIZE = 4
 
-# data embedding
+# data embedding info
 INFO_FILE_NAME = "info.json"
-EMBED_MODEL_NAME_KEY = "embed_model_name"
+STATIC_EMBED_MODEL_NAME_KEY = "static_embed_model_name"
+DENSE_EMBED_MODEL_NAME_KEY = "dense_embed_model_name"
+EMBEDDING_DIMENSION_KEY = "embedding_dimension"
 
 # handling guest users
 SESSION_EXPIRED_KEY = "expired"
@@ -79,18 +98,29 @@ GUEST_FILENAME_LISTING = re.compile(
 # communication with frontend
 SESSION_CLUE_LEN_BASE = len(HEXDIGITS)
 
-# making the LLM embedding
-ATTEMPT_COUNT_INDEX = 3
-VEC_FEED_INDEX_SLEEP = 120
+# using LLM embeddings
+ENV_HF_MUTE = ["HF_HUB_DISABLE_TELEMETRY", "HF_HUB_OFFLINE"]
+ENV_HF_MODELS_CACHE_DIR = "HF_HUB_CACHE"
+ENV_HF_ASSETS_CACHE_DIR = "HF_ASSETS_CACHE"
+HF_MODELS_SUBDIR = "hub"
+HF_ASSETS_SUBDIR = "assets"
+
+# sending texts to inferring LLM models
+LLM_INFERRING_TITLE_THRESHOLD = 1024
+LLM_INFERRING_TITLE_CUT_LENGTH = 1000
+LLM_INFERRING_ABSTRACT_THRESHOLD = 2048
+LLM_INFERRING_ABSTRACT_CUT_LENGTH = 2000
+LLM_INFERRING_CUT_NOTICE = "[cut]"
 
 # getting the feeds
 ATTEMPT_COUNT_FEED = 6
 RSS_FEED_TAKE_SLEEP = 15
+RSS_FEED_INDEX_SLEEP = 10
 RSS_FEED_URL_BASE = "https://connect.biorxiv.org/biorxiv_xml.php?subject="
 RSS_FEED_FILE_NAME = "feed.rss"
 
 # config for UI and parsing the feeds
-MAX_RECALL_SEARCHES_COUNT = 100
+MAX_RECALL_SIFTS_COUNT = 100
 BIORXIV_FEED_SIZE = 30
 BIORXIV_FEED_MINIMAL_SIZE = 20
 BIORXIV_DOI_START = "10.64898"
@@ -160,6 +190,10 @@ FEED_MATCH_SYMS = re.compile("".join([
     "|".join(map(re.escape, FEED_REPLS_SYMS.keys())),
     r")\}",
 ]))
+# lists in PDF texts turn to "O_LI...C_LI" itemization in RSS feeds;
+# it is multiline and w/o any brackets, etc. around;
+FEED_MATCH_LISTS = re.compile(r"(O_LI)((?!O_LI).*?)C_LI", flags=re.M | re.S)
+FEED_FLANK_LISTS = {"O_LI": [" •", " "]}
 
 # LLM-result presentation to frontend
 VIEW_WARNING_KEY = "warning"

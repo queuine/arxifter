@@ -221,9 +221,9 @@ function utilsGenSearchID(rank) {
     return `search-${rank}-${Date.now()}-${randPart}`;
 };
 
-// for checking the structure of the search list taken from local storage;
+// for checking the structure of the sifts list taken from local storage;
 // while it should be intact, it is better to check it;
-function utilsCheckSearchList(searchList) {
+function utilsCheckSiftsList(searchList) {
     let useList = utilsIsArray(searchList) ? searchList : [];
     let checkedList = [];
 

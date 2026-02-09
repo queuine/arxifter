@@ -1,45 +1,37 @@
-# arxifter: sifting through open archives
+# arχifter: AI sifting through ***bioRχiv*** feeds
 
-Arxifter is intended for AI searches on arxiv, biorxiv, etc.
-The first module is prepared for ***bioRχiv***, sifting through its feeds.
+arχifter provides LLM-enabled searches on bioRxiv feeds.
+arxifter does the respective sifting via a combination of local indexing
+and a use of *OpenAI* compatible LLM services.
 
-Feeds from biorxiv have to be ingest before they can be used for the sifting.
-An example script for it is `feeder.sh` at the *srv* directory.
-It should be set as a cron/timer job.
-The past ingested (downloaded, parsed and indexed) feeds can be pruned too.
-An example script for it is `pruner.sh`.
-These scripts are preperad for situations when arxifter is run via docker/podman.
+bioRxiv feeds have to be ingested before they can be used for the sifting.
+An example script for it is `feeder.sh` in the *srv* directory
+that should be set as a cron job.
+It is preperad for situations when arxifter is run via docker.
 
-User interface to arxifter searches is via a *Quart* web server.
-An example script for running it is `server.sh` at the *srv* directory.
-When the arxifter web is run by this script and using the example configuration file (see below),
-it listens on port *5000* at the `/biorxiv/` path.
-When it is run within docker/podman according to the provided Dockerfile,
-it is available on the `http://localhost:8000/biorxiv/` URL.
-
-Arxifter requires a configuration file to be prepared.
+arχifter requires a configuration file to be prepared.
 An example configuration is at the *srv/conf/arxifter.toml* file.
 Path to the actual configuration has to be set to environmental variable
-`ARXIFTER_CONFIG_PATH` before any arxifter action gets run.
+`ARXIFTER_CONFIG_PATH`.
 
-Arxifter does the (indexing and) searching via LLM servers, and by that it needs respective API keys.
-The current implementation uses *OpenAI* services through the *LlamaIndex* framework.
-Locations of the required API keys are set at the configuration file too.
+User interface to arxifter searches is via a web server,
+with a script `server.sh` for it in the *srv* directory.
+When the arxifter web is run using the example configuration file,
+it listens on port *5000* at the `/biorxiv/` path.
 
-The current arxifter implementation can serve the LLM querying to guests too.
-Whether guests (i.e. anonymous users) are permitted is set at the configuration file.
-It is enabled / disabled by setting the "users:with_guest" item to true vs. false there.
+When arxifter is run within docker according to the provided configuration and Dockerfile,
+it is available at `http://localhost:8000/biorxiv/` that is supposed to be put behind a reverse proxy.
 
-#### Arxifter is expected to be used via docker/podman.
+#### arχifter is expected to be used via docker
 
-To run arxifter via podman, run the two following commands from the arxifter distribution directory;
-it contains two `Dockerfile` files for it, with one of them being used during development of arxifter.
+To run arxifter via docker, run the two following commands from the arxifter distribution directory;
+it contains two `Dockerfile` files, with one of them being used during development of arxifter.
 
-- `buildah build -f Dockerfile -t arxifter:v03 .`
-- `podman run -it -p 8000:5000 -v ./srv:/arxifter/srv --name arxifter arxifter:v03`
+- `docker build -f Dockerfile -t arxifter .`
+- `docker run -it -p 8000:5000 -v ./srv:/app/arxifter/srv --name arxifter arxifter`
 
-Once being within a running container, biorxiv RSS feeds can be ingested
-by the `feeder.sh` script in the `srv` subdirectory, as stated above.
+Once being within a running container, bioRxiv feeds can be ingested
+by the `feeder.sh` script in the `srv` subdirectory.
 Then the web server can be started by the `server.sh` script located there too.
 
 **The project site is at [QuaDet](https://arxifter.quadet.com/) and its repository is hosted at [Codeberg](https://codeberg.org/msat/arxifter/).**

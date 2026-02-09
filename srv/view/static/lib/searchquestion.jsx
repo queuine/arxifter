@@ -8,10 +8,36 @@ const ReactDOM = window.ReactDOM ?? await import('react-dom');
 import SearchQuestionLine from "arxifter/biorxiv/searchquestionline.js";
 
 function SearchQuestion(props) {
+    const getSiftLabel = (timestamp, rank) => {
+        let ts = Number(timestamp);
+        if (!isFinite(ts)) {
+            ts = 0;
+        } else {
+            ts = Math.max(0, Math.round(ts));
+        }
+        let label = ` sifting #${rank}`
+        if (ts) {
+            const dt = new Date(ts);
+            const dt_day = (
+                dt.getFullYear()
+                + "-"
+                + String(dt.getMonth() + 1).padStart(2, 0)
+                + "-"
+                + String(dt.getDate()).padStart(2, 0)
+            );
+            const dt_time = dt.toLocaleTimeString();
+            label += `, queried ${dt_day} at ${dt_time}`;
+        }
+        return label + " ";
+    };
+
     return (
             <div className="search-question">
                 <div className="search-question-top">
-                    <div className="search-question-label">
+                    <div
+                        className="search-question-label"
+                        title={getSiftLabel(props.timestamp, props.rank)}
+                    >
                         <div className="search-question-feed">
                         {
                             utilsIsFeedMulti(props.content.subject)
@@ -25,23 +51,40 @@ function SearchQuestion(props) {
                             {utilsToSubjectView(props.content.subject)}
                         </div>
                     </div>
-                    <div className="search-question-delete-outer">
+                    <div className="search-question-buttons-outer">
                         <button
                             className={
-                                "search-question-delete" + (
-                                    (props.removalActive)
-                                    ? ""
-                                    : " search-question-delete-inactive"
+                                "search-question-button " + (
+                                "search-question-save" ) + (
+                                    props.actionActive
+                                    ? " search-question-button-active"
+                                    : " search-question-button-inactive"
                                 )
                             }
                             title={
-                                "Delete results of the search"
-                                + ` #${props.rank + 1}`
+                                "Download sifting " + `#${props.rank}`
                             }
-                            disabled={!props.removalActive}
-                            onClick={props.removal}
+                            disabled={!props.actionActive}
+                            onClick={props.doSave}
                         >
-                            X
+                            🡇
+                        </button>
+                        <button
+                            className={
+                                "search-question-button " + (
+                                "search-question-delete" ) + (
+                                    (props.actionActive)
+                                    ? " search-question-button-active"
+                                    : " search-question-button-inactive"
+                                )
+                            }
+                            title={
+                                "Delete sifting " + `#${props.rank}`
+                            }
+                            disabled={!props.actionActive}
+                            onClick={props.doRemoval}
+                        >
+                            🗙
                         </button>
                     </div>
                 </div>

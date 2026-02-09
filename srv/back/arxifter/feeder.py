@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """
 Management of taking and indexing biorxiv feeds.
-The indexing is done as an embedding via an LLM.
+The indexing is done locally via embeddings.
 """
 
-import os, json, time
+import os, time
 import urllib.request
 import datetime as dt
 
@@ -13,23 +13,29 @@ from .setting import (
     DATA_DIR_CURR,
     NEW_DIRS_MODE,
     ACTIVE_DATA_DIR_MAKING,
-    INFO_FILE_NAME,
-    EMBED_MODEL_NAME_KEY,
     RSS_FEED_TAKE_SLEEP,
+    RSS_FEED_INDEX_SLEEP,
     ATTEMPT_COUNT_FEED,
     RSS_FEED_FILE_NAME,
     ENV_CONF_PATH,
 )
 from .logging import (
+    log_message,
     log_debug,
+    log_info,
     log_error,
 )
 from .utils import (
     list_active_data_dir,
     subject_spec_to_feed_url,
+    get_current_data_dir,
+    load_encoders_info,
+    check_encoders_info,
+    save_encoders_info,
 )
 from .config import get_conf
 from .parser import parse_feed_save_docs
+from .encoder import get_encoders
 from .indexer import index_docs
 
 
@@ -90,6 +96,7 @@ def _prepare_data_dirs(conf, current_dt):
 
 def _take_feeds(conf, data_dir):
     got_error = False
+    first_download = True
     for subject_spec, subject_fs in (
         conf["feeds"]["subjects"]["catalog"].items()
     ):
@@ -98,9 +105,12 @@ def _take_feeds(conf, data_dir):
         got_feed = False
         time_to_sleep = RSS_FEED_TAKE_SLEEP
         for attempt in range(ATTEMPT_COUNT_FEED):
-            time.sleep(time_to_sleep)
+            if not first_download:
+                time.sleep(time_to_sleep)
+            else:
+                first_download = False
             time_to_sleep *= 2
-            if conf["debugging"]["feed_taking"]:
+            if conf["debugging"]["feed_ingest"]:
                 log_debug(f"taking {subject_spec}: attempt #{attempt + 1}")
             try:
                 with open(feed_path, "wb") as fh:
@@ -134,34 +144,48 @@ def _parse_feeds(conf, data_dir):
     return not got_error
 
 
-def _index_feeds(conf, data_dir):
+def _get_prev_feed_dir(conf, encoders):
+    # the dir from where embedding vectors can be reused
+    # is the current data dir, but that only if the encoders
+    # used then and to be used now are the same;
+    prev_data_dir = get_current_data_dir(conf)
+
+    if not check_encoders_info(
+        load_encoders_info(prev_data_dir),
+        encoders,
+    ):
+        log_info("cannot reuse previous vectors, b/c encoders differ")
+        return None
+
+    return prev_data_dir
+
+
+def _index_feeds(conf, data_dir, prev_data_dir, encoders):
     got_error = False
+    time_spans = []
+    first_subject = True
     for _, subject_fs in conf["feeds"]["subjects"]["catalog"].items():
-        if not index_docs(
-            conf,
+        if not first_subject:
+            time.sleep(RSS_FEED_INDEX_SLEEP)
+        else:
+            first_subject = False
+
+        time_start = time.time()
+        res = index_docs(
+            encoders,
             _get_rss_feed_dir(data_dir, subject_fs),
-        ):
+            _get_rss_feed_dir(prev_data_dir, subject_fs),
+        )
+        time_spans.append(time.time() - time_start)
+        if not res:
             got_error = True
             break
+
+    log_info(f"indexing took {sum(time_spans)} s overall")
+    if conf["debugging"]["feed_ingest"]:
+        log_message(str(time_spans))
+
     return not got_error
-
-
-def _write_data_info(conf, data_dir):
-    file_path = os.path.join(
-        data_dir,
-        INFO_FILE_NAME,
-    )
-    data_info = {
-        EMBED_MODEL_NAME_KEY: conf["llms"]["embed_model_name"],
-    }
-    try:
-        with open(file_path, "w", encoding="utf8") as fh:
-            json.dump(data_info, fh)
-        info_written = True
-    except Exception:
-        info_written = False
-
-    return info_written
 
 
 def _get_dt_active_dir(dt_obj):
@@ -214,6 +238,10 @@ def ingest_feeds():
         if conf is None:
             log_error("cannot get configuration")
             return False
+        encoders = get_encoders(conf)
+        if encoders is None:
+            log_error("cannot get the encoders")
+            return False
         current_dt = dt.datetime.now(dt.UTC)
         data_dir = _prepare_data_dirs(conf, current_dt)
         if data_dir is None:
@@ -225,11 +253,12 @@ def ingest_feeds():
         if not _parse_feeds(conf, data_dir):
             log_error("cannot parse feeds")
             return False
-        if not _index_feeds(conf, data_dir):
+        prev_data_dir = _get_prev_feed_dir(conf, encoders)
+        if not _index_feeds(conf, data_dir, prev_data_dir, encoders):
             log_error("cannot index feeds")
             return False
-        if not _write_data_info(conf, data_dir):
-            log_error("cannot write data info")
+        if not save_encoders_info(data_dir, encoders):
+            log_error("cannot save the encoders-data info")
             return False
         if not _make_data_dir_active(conf, current_dt):
             log_error("cannot make data dir active")

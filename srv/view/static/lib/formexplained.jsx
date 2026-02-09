@@ -12,6 +12,33 @@ function FormExplained(props) {
     );
 
     return (
+        <div
+            id="form-explained-outer"
+            title="whether LLM should explain its choices"
+        >
+            <input
+                id="form-explained-checkbox"
+                type="checkbox"
+                name={checkName}
+                value="yes"
+                checked={getExplained}
+                onChange={(e) => {
+                    setGetExplained(!getExplained);
+                }}
+            />
+            <label
+                id="form-explained-label"
+                htmlFor="form-explained-checkbox"
+            >
+                explained
+            </label>
+        </div>
+    );
+}
+
+export { FormExplained as default };
+
+/*
         <label
             title="whether LLM should explain its choices"
         >
@@ -26,7 +53,4 @@ function FormExplained(props) {
             />
             explained
         </label>
-    );
-}
-
-export { FormExplained as default };
+*/

@@ -11,7 +11,8 @@ import datetime as dt
 from .setting import (
     ENV_CONF_PATH,
     INFO_FILE_NAME,
-    EMBED_MODEL_NAME_KEY,
+    STATIC_EMBED_MODEL_NAME_KEY,
+    DENSE_EMBED_MODEL_NAME_KEY,
 )
 from .logging import log_error
 from .utils import list_stored_data_dirs
@@ -25,7 +26,16 @@ def _has_indexed_storage(day_dir):
         if os.path.exists(info_path):
             try:
                 with open(info_path, encoding="utf8") as fh:
-                    if json.load(fh).get(EMBED_MODEL_NAME_KEY, "") != "":
+                    embed_desc = json.load(fh)
+                    has_desc_keys = True
+                    for desc_key in [
+                        STATIC_EMBED_MODEL_NAME_KEY,
+                        DENSE_EMBED_MODEL_NAME_KEY,
+                    ]:
+                        if embed_desc.get(desc_key, "") == "":
+                            has_desc_keys = False
+                            break
+                    if has_desc_keys:
                         index_found = True
             except Exception:
                 index_found = False

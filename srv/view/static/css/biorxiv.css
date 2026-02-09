@@ -47,6 +47,7 @@ input[type='checkbox']:checked {
 #arxifter-top-backlink {
     color: #003000;
     padding: 0px 4px 0px 4px;
+    font-weight: bold;
 }
 #arxifter-top-backlink:link, #arxifter-top-backlink:visited {
     text-decoration: none;
@@ -103,6 +104,9 @@ input[type='checkbox']:checked {
 .popup-users-form-label-that {
     color: #000000;
 }
+.popup-users-form-label-that:hover {
+    color: #008000;
+}
 .popup-users-form-label-active {
     color: #006000;
 }
@@ -146,7 +150,29 @@ input[type='checkbox']:checked {
     margin: 0px 0px 10px 0px;
 }
 #popup-saving {
-    margin: 8px 30px 0px 30px;
+    margin: 4px 30px 0px 30px;
+}
+#popup-saving-checkbox {
+    margin: 0px 4px 0px 4px;
+    vertical-align: middle;
+}
+#popup-saving-label {
+    margin-left: 4px;
+    vertical-align: middle;
+}
+#popup-setting-ui {
+    margin: 20px 0px 0px 0px;
+}
+#popup-setting-autofocus {
+    margin: 4px 30px 0px 30px;
+}
+#popup-setting-autofocus-checkbox {
+    margin: 0px 4px 0px 4px;
+    vertical-align: middle;
+}
+#popup-setting-autofocus-label {
+    margin-left: 4px;
+    vertical-align: middle;
 }
 .arxifter-popup-bottom {
     display: flex;
@@ -161,10 +187,7 @@ input[type='checkbox']:checked {
     background: #608000;
     box-shadow: none;
     border-radius: 0px;
-    padding-left: 8px;
-    padding-right: 8px;
-    padding-top: 2px;
-    padding-bottom: 2px;
+    padding: 2px 8px 2px 8px;
 }
 #search-form {
     width: 100%;
@@ -191,6 +214,10 @@ input[type='checkbox']:checked {
 .search-waiting-next {
     color: #104030;
     margin-top: 10px;
+    margin-bottom: 10px;
+}
+.search-waiting-time {
+    color: #104030;
     margin-bottom: 40px;
 }
 #search-list {
@@ -231,21 +258,35 @@ input[type='checkbox']:checked {
     font-style: italic;
     font-weight: bold;
 }
-.search-question-delete-outer {
+.search-question-buttons-outer {
+    display: flex;
+    flex-direction: row;
     margin-left: 4px;
 }
-.search-question-delete {
+.search-question-button {
     border: 0;
-    border-radius: 10px;
-    background: #d0b080;
+    background: #ffffff;
     box-shadow: none;
     text-align: center;
     font-weight: bold;
-    font-size: 80%;
-    padding: 3px 6px 3px 6px;
+    line-height: 1.2em;
 }
-.search-question-delete-inactive {
+.search-question-save {
+    font-size: 75%;
+    margin-right: 1px;
+}
+.search-question-delete {
+    font-size: 85%;
+}
+.search-question-button-active {
+    color: #c0a070;
+}
+.search-question-button-active:hover {
     color: #d0b080;
+    background: #f0f0f0;
+}
+.search-question-button-inactive {
+    color: #d0d0d0;
 }
 .search-question-query {
     margin-top: 4px;
@@ -276,6 +317,19 @@ input[type='checkbox']:checked {
     flex-direction: row;
     justify-content: space-between;
     margin-bottom: 1px;
+}
+#form-explained-outer {
+    display: flex;
+    flex-direction: row;
+    margin: 0px 0px 0px 0px;
+}
+#form-explained-checkbox {
+    vertical-align: middle;
+}
+#form-explained-label {
+    vertical-align: middle;
+    height: 100%;
+    margin-left: 1px;
 }
 #form-query-textarea {
     width: calc(100% - 6px);

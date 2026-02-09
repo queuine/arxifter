@@ -56,14 +56,23 @@ function ArxifterPage() {
 
   // local storage: setting for whether last searches should be saved
   const getSaveLastSearches = () => {
-    return storageLoadSetupSaveSearches(getStoragePrefix());
+    return storageLoadSetupSaveSifts(getStoragePrefix());
   };
   const setSaveLastSearches = toSave => {
-    storageSaveSetupSaveSearches(getStoragePrefix(), toSave);
+    storageSaveSetupSaveSifts(getStoragePrefix(), toSave);
     searchesRef.current?.setToSaveLastSearches(toSave);
   };
   const saveLastSearches = toSave => {
     searchesRef.current?.saveLastSearches(toSave);
+  };
+
+  // local storage: setting for whether text area should be auto-focused
+  const getAutoFocusTA = () => {
+    return storageLoadSetupAutoFocusTA(getStoragePrefix());
+  };
+  const setAutoFocusTA = toAutoFocus => {
+    storageSaveSetupAutoFocusTA(getStoragePrefix(), toAutoFocus);
+    searchFormRef.current?.setAutoFocus(toAutoFocus);
   };
 
   // functions for taking the current user
@@ -219,7 +228,7 @@ function ArxifterPage() {
     postDict[clues["clueHid"]] = isLaborer;
     postDict[clues["clueStr"]] = clueStr;
     const postData = JSON.stringify(postDict);
-    const postUrl = [getFabricServer()["pathPrefix"], utilsGetSessionParts().join("/")].join("/");
+    const postUrl = [getFabricView()["pathPrefix"], utilsGetSessionParts().join("/")].join("/");
     fetch(postUrl, {
       method: 'post',
       body: postData,
@@ -260,6 +269,8 @@ function ArxifterPage() {
     getSaveLastSearches: getSaveLastSearches,
     setSaveLastSearches: setSaveLastSearches,
     saveLastSearches: saveLastSearches,
+    getAutoFocusTA: getAutoFocusTA,
+    setAutoFocusTA: setAutoFocusTA,
     closePopup: () => {
       closePopupSetting();
     }
@@ -287,10 +298,11 @@ function ArxifterPage() {
     hasUserSet: hasUserSet,
     isUserGuest: isUserGuest,
     getUser: getUser,
-    openPopupUsers: openPopupUsers
+    openPopupUsers: openPopupUsers,
+    getAutoFocusTA: getAutoFocusTA
   }), /*#__PURE__*/React.createElement(SearchList, {
     ref: searchesRef,
-    searchList: storageLoadSearches(getStoragePrefix(), jsonrepair),
+    searchList: storageLoadSifts(getStoragePrefix(), jsonrepair),
     getSaveLastSearches: getSaveLastSearches,
     getStoragePrefix: getStoragePrefix
   }));

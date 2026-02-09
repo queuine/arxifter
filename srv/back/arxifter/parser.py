@@ -10,11 +10,9 @@ import feedparser
 from .setting import (
     NEW_DIRS_MODE,
     DOCUMENTS_SUBDIR,
-    DOCUMENTS_FOR_VECTORS_SUBDIR,
     BIORXIV_FEED_MINIMAL_SIZE,
     BIORXIV_DOI_START,
     BIORXIV_DOI_ENDS,
-    ARTICLE_KEY_RANK,
 )
 from .logging import log_error
 from .utils import (
@@ -137,9 +135,10 @@ def _get_abstract(entry):
 def parse_feed_save_docs(source):
     """
     Parses and saves an already downloaded feed.
-    It saves them in two versions:
-    * for presenting to users,
-    * for indexing by LLMs.
+    It saves them in a single version that is used for all of:
+    * embeddings used later at presifting,
+    * presenting to LLMs to answer user queries on them,
+    * eventually presenting to users.
     """
     feed = None
     try:
@@ -165,16 +164,13 @@ def parse_feed_save_docs(source):
 
     work_dir = os.path.dirname(source)
     docs_dir_orig = os.path.join(work_dir, DOCUMENTS_SUBDIR)
-    docs_dir_prep = os.path.join(work_dir, DOCUMENTS_FOR_VECTORS_SUBDIR)
 
     try:
         os.makedirs(docs_dir_orig, mode=NEW_DIRS_MODE, exist_ok=True)
-        os.makedirs(docs_dir_prep, mode=NEW_DIRS_MODE, exist_ok=True)
     except Exception as exc:
         log_error("\n".join([
-            "could not prepare dirs to save docs made out of a feed:",
+            "could not prepare the dir to save docs made out of a feed:",
             str(docs_dir_orig),
-            str(docs_dir_prep),
             str(exc),
         ]))
         return False
@@ -186,9 +182,8 @@ def parse_feed_save_docs(source):
 
         doc_name = get_doc_name(ind)
         doc_path_orig = os.path.join(docs_dir_orig, doc_name)
-        doc_path_prep = os.path.join(docs_dir_prep, doc_name)
 
-        # "title" and "abstract" are required here,
+        # "title", "abstract" and "doi" are required here,
         # the other items are optional;
         art_link = _get_link(entry)
         art_doi = _get_doi(entry, art_link)
@@ -197,7 +192,12 @@ def parse_feed_save_docs(source):
         art_authors = _get_authors(entry)
         art_abstract = _get_abstract(entry)
 
-        if (art_title is None) or (art_abstract is None):
+        misses_required = False
+        for req_part in [art_title, art_abstract, art_doi]:
+            if req_part is None:
+                misses_required = True
+                break
+        if misses_required:
             log_error("\n".join([
                 "article metadata lack required parts",
                 f"article: {ind} (indexing is from 1)",
@@ -224,21 +224,6 @@ def parse_feed_save_docs(source):
             log_error("\n".join([
                 "could not save a doc made out of a feed:",
                 str(doc_path_orig),
-                str(exc),
-            ]))
-            continue
-
-        try:
-            with open(doc_path_prep, "w", encoding="utf8") as fh:
-                fh.write(json.dumps({
-                    ARTICLE_KEY_RANK: ind,
-                    "title": art_title,
-                    "abstract": art_abstract,
-                }))
-        except Exception as exc:
-            log_error("\n".join([
-                "could not save a doc made out of a feed:",
-                str(doc_path_prep),
                 str(exc),
             ]))
             continue

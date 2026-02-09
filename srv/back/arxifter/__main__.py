@@ -10,10 +10,12 @@ Module for calling auxiliary tools:
 * for testing the configuration
 * for taking and indexing feeds
 * for pruning the past indexed feeds
-* for testing the feed parsing
+* for testing the feed parsing/indexing
 """
 
-import sys
+import sys, time
+
+from setproctitle import setproctitle
 
 from .setting import (
     COMMAND_CONFIG,
@@ -24,13 +26,17 @@ from .setting import (
     COMMAND_FEEDS_PRUNE,
     COMMAND_TESTS,
     COMMAND_TESTS_FEED_PARSING,
+    COMMAND_TESTS_FEED_INDEXING,
     ENV_CONF_PATH,
+    APP_NAME_FEED_INGEST,
+    APP_NAME_FEED_PRUNING,
 )
 from .logging import (
     log_message,
     log_info,
     log_error,
 )
+from .utils import mute_hf
 
 
 def do_config_env():
@@ -66,6 +72,7 @@ def do_feeds_ingest():
     """
     Ingests RSS feeds: via downloading, indexing and saving them.
     """
+    setproctitle(APP_NAME_FEED_INGEST)
     log_info("starting feed ingest")
     try:
         from .feeder import ingest_feeds
@@ -81,6 +88,7 @@ def do_feeds_prune():
     """
     Prunes individual batches of the previously ingested feeds.
     """
+    setproctitle(APP_NAME_FEED_PRUNING)
     log_info("starting feed pruning")
     try:
         from .pruner import prune_feeds
@@ -96,12 +104,29 @@ def do_test_feed_parsing():
     """
     Tests the feed-parsing process
     """
+    time_start = time.time()
     try:
         from .tests import test_feed_parsing
         res = test_feed_parsing()
     except Exception as exc:
         log_error(str(exc))
         res = False
+    log_message(f"parsing took {time.time() - time_start}s")
+    return res
+
+
+def do_test_feed_index():
+    """
+    Tests the feed-indexing process
+    """
+    time_start = time.time()
+    try:
+        from .tests import test_feed_index
+        res = test_feed_index()
+    except Exception as exc:
+        log_error(str(exc))
+        res = False
+    log_message(f"indexing took {time.time() - time_start}s")
     return res
 
 
@@ -126,10 +151,15 @@ def do_help():
         f"python -m arxifter {COMMAND_TESTS} {COMMAND_TESTS_FEED_PARSING}",
         "    for testing the feed-parsing process (used during development)"
         "    it needs to have the configuration env. variable set",
+        f"python -m arxifter {COMMAND_TESTS} {COMMAND_TESTS_FEED_INDEXING}",
+        "    for testing the feed-indexing process (used during development)"
+        "    it needs to have the configuration env. variable set",
     ]))
 
 
 if __name__ == "__main__":
+    mute_hf()
+
     if len(sys.argv) <= 1:
         log_error("no command provided")
         do_help()
@@ -158,6 +188,8 @@ if __name__ == "__main__":
         elif sys.argv[1] == COMMAND_TESTS:
             if sys.argv[2] == COMMAND_TESTS_FEED_PARSING:
                 sys.exit(0 if do_test_feed_parsing() else 2)
+            if sys.argv[2] == COMMAND_TESTS_FEED_INDEXING:
+                sys.exit(0 if do_test_feed_index() else 2)
 
     log_error("wrong parameters")
     do_help()

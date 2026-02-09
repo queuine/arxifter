@@ -21,6 +21,7 @@ class SearchForm extends React.Component {
     this.explaining = props.getExplaining();
     this.usedSubject = props.getUsedSubject();
     this.setOnSearch = props.setOnSearch;
+    this.getAutoFocusTA = props.getAutoFocusTA;
     this.dataNameQuery = "queryContent";
     this.dataNameExplained = "toExplain";
     this.dataNameSubject = "selectedBiorxivSubject";
@@ -41,6 +42,9 @@ class SearchForm extends React.Component {
     this.gotEmptyQuery = () => {
       this.formQueryRef.current?.setUnderEmpty(true);
     };
+    this.setAutoFocus = toAutoFocus => {
+      this.formQueryRef.current?.setAutoFocus(toAutoFocus);
+    };
     this.handleSubmit = e => {
       e.preventDefault();
       this.submitQuery(e.target);
@@ -58,13 +62,14 @@ class SearchForm extends React.Component {
       }
       this.submitQuery(this.formRef.current);
     };
-    this.prepareParams = (queryText, toExplain) => {
+    this.prepareParams = (queryText, toExplain, hsVal) => {
       const fabricQuery = getFabricQuery();
       let queryDict = {};
       queryDict[fabricQuery["queryText"]] = queryText;
       queryDict[fabricQuery["toExplain"]] = toExplain;
       queryDict[fabricQuery["userId"]] = this.getUser();
       queryDict[fabricQuery["isGuest"]] = this.isUserGuest();
+      queryDict[hsVal] = true;
       return queryDict;
     };
     this.submitQuery = form => {
@@ -90,7 +95,7 @@ class SearchForm extends React.Component {
         subject: subjectId,
         query: queryText
       });
-      const urlPrefix = getFabricServer()["pathPrefix"];
+      const urlPrefix = getFabricView()["pathPrefix"];
       const urlInfix = utilsGetQueryParts().join("/");
       const wsForm = window.location.protocol == "https:" ? "wss:" : "ws:";
       const wsUri = wsForm + window.location.host + [urlPrefix, urlInfix, subjectId].join("/");
@@ -138,7 +143,8 @@ class SearchForm extends React.Component {
             hsVal = Math.abs(hsVal - message);
             websocket.send(hsVal.toString(10));
           } else if (iterCount == 0) {
-            const queryDict = this.prepareParams(queryText, toExplain);
+            hsVal = Math.abs(hsVal - message).toString(10);
+            const queryDict = this.prepareParams(queryText, toExplain, hsVal);
             websocket.send(JSON.stringify(queryDict));
           } else if (iterCount == -1) {
             infoProvided = true;
@@ -162,7 +168,8 @@ class SearchForm extends React.Component {
       onSubmit: this.handleSubmit
     }, /*#__PURE__*/React.createElement(FormQuery, {
       ref: this.formQueryRef,
-      dataName: this.dataNameQuery
+      dataName: this.dataNameQuery,
+      autoFocus: this.getAutoFocusTA()
     }, /*#__PURE__*/React.createElement(FormExplained, {
       dataName: this.dataNameExplained,
       explaining: this.explaining
