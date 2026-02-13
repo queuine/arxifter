@@ -7,7 +7,12 @@ import json
 from pathlib import Path
 
 import numpy as np
-import hnswlib
+try:
+    # presifting uses spacy only at debugging,
+    # thus it does not need to be present here;
+    import spacy
+except Exception:
+    pass
 
 from .setting import (
     DOCUMENTS_SUBDIR,
@@ -15,8 +20,6 @@ from .setting import (
     HNSWDATA_SUBDIR,
     HNSWDATA_SPACE,
     HNSWDATA_INDEX,
-    HNSWDATA_LABELS,
-    HNSWDATA_PARTS,
     INFO_FILE_NAME,
     STATIC_EMBED_MODEL_NAME_KEY,
     DENSE_EMBED_MODEL_NAME_KEY,
@@ -27,6 +30,7 @@ from .utils import (
     load_encoders_info,
     check_encoders_info,
 )
+from .logging import log_message
 
 
 def _check_used_embed_model_names(base_path, encoders, logger):
@@ -145,51 +149,54 @@ def _find_closest_articles_by_hnsw_search(
             "for the query vs. saved docs"
         )
 
-    p = hnswlib.Index(space=HNSWDATA_SPACE, dim=embedding_dimension)
+    p = conf["libs"]["hnswlib"]["module"].Index(
+        space=HNSWDATA_SPACE, dim=embedding_dimension
+    )
     p.load_index(str(Path(
         base_path,
         HNSWDATA_SUBDIR,
         HNSWDATA_INDEX,
     )))
-    doc_indices = np.load(
-        Path(
-            base_path,
-            HNSWDATA_SUBDIR,
-            HNSWDATA_LABELS,
-        ),
-        allow_pickle=False,
+
+    hnswlib_with_unique_docs = conf["libs"]["hnswlib"]["with_unique_docs"]
+    count_to_provide = conf["sifting"]["pick_count_static"]
+    count_to_search = count_to_provide + (
+        0 if hnswlib_with_unique_docs else PRESIFTING_STATIC_OVERHANG
     )
 
-    count_to_provide = conf["sifting"]["pick_count_static"]
-    count_to_search = count_to_provide + PRESIFTING_STATIC_OVERHANG
-
-    search_labels_found, _ = p.knn_query(query_embedding, k=count_to_search)
+    search_labels_found, _ = p.knn_query(
+        query_embedding,
+        k=count_to_search,
+        **dict([["unique_docs", True]] if hnswlib_with_unique_docs else []),
+    )
     search_labels_all = [int(item) for item in search_labels_found[0]]
 
     presifted_doc_ids = list({
-        int(doc_indices[idx]): True for idx in search_labels_all
+        (idx >> 32): True for idx in search_labels_all
     })[:count_to_provide]
 
     if debugging:
-        logger.info("static presifting:\n" + str([
-            (idx + 1) for idx in presifted_doc_ids
-        ]))
         try:
-            with open(
-                Path(
-                    base_path,
-                    HNSWDATA_SUBDIR,
-                    HNSWDATA_PARTS,
-                ),
-                encoding="utf8",
-            ) as fh:
-                sentences_all = json.load(fh)
-                for idx in search_labels_all:
-                    logger.debug(str(
-                        [int(doc_indices[idx]) + 1, sentences_all[idx]]
-                    ))
+            documents = list(_get_feed_docs(base_path))
+            logger.info("sentence-wise presifting:\n" + str([
+                documents[idx]["name"] for idx in presifted_doc_ids
+            ]))
+            nlp = spacy.blank("en")
+            nlp.add_pipe("sentencizer")
+            for idx in search_labels_all:
+                doc_id, sent_id = [idx >> 32, idx & ((1 << 32) - 1)]
+                curr_doc = documents[doc_id]
+                curr_sent = (
+                    curr_doc["content"]["title"] if (sent_id == 0) else
+                    str(list(
+                        nlp(curr_doc["content"]["abstract"]).sents
+                    )[sent_id - 1])
+                )
+                log_message(str([
+                    documents[doc_id]["name"], sent_id, curr_sent
+                ]))
         except Exception:
-            logger.debug("info on individual sentences not available")
+            logger.debug("could not get the info on individual sentences")
 
     return presifted_doc_ids
 
@@ -208,8 +215,9 @@ def _find_closest_articles_by_vector_comparison(
     )[:conf["sifting"]["pick_count_dense"]]
 
     if debugging:
-        logger.info("dense presifting:\n" + str([
-            (idx + 1) for idx in presifted_doc_ids
+        documents = list(_get_feed_docs(base_path))
+        logger.info("document-wise presifting:\n" + str([
+            documents[idx]["name"] for idx in presifted_doc_ids
         ]))
 
     return presifted_doc_ids
@@ -224,13 +232,15 @@ def _get_docs_for_the_searching(
             ids_to_use[idx] = True
 
     ids_to_use = list(ids_to_use)
+
+    documents = list(_get_feed_docs(base_path))
+
     if debugging:
         merged_count = len(ids_to_use)
         logger.info(f"merged presifting: {merged_count} docs\n" + str([
-            (idx + 1) for idx in ids_to_use
+            documents[idx]["name"] for idx in ids_to_use
         ]))
 
-    documents = list(_get_feed_docs(base_path))
     return [
         documents[item] for item in ids_to_use
     ]
@@ -252,16 +262,38 @@ def presift_docs(conf, encoders, data_dir, base_path, query, get_logger):
         ids_split = _find_closest_articles_by_hnsw_search(
             conf, encoders["static"], base_path, query, logger, debugging
         )
+    except Exception as exc:
+        ids_split = []
+        logger.warning("\n".join([
+            "an error occurred during the split-form presifting:",
+            str(base_path),
+            str(exc),
+        ]))
+    try:
         ids_whole = _find_closest_articles_by_vector_comparison(
             conf, encoders["dense"], base_path, query, logger, debugging
         )
+    except Exception as exc:
+        ids_whole = []
+        logger.warning("\n".join([
+            "an error occurred during the whole-form presifting:",
+            str(base_path),
+            str(exc),
+        ]))
+    if (len(ids_split) == 0) and (len(ids_whole) == 0):
+        logger.error("\n".join([
+            "could not get any article by presifting",
+            str(base_path),
+        ]))
+        return None
+    try:
         docs = _get_docs_for_the_searching(
             base_path, ids_split, ids_whole, logger, debugging
         )
     except Exception as exc:
         docs = None
         logger.error("\n".join([
-            "an error occurred during the presifting:",
+            "an error occurred during the presifting merge:",
             str(base_path),
             str(exc),
         ]))

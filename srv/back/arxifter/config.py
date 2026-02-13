@@ -3,9 +3,9 @@
 Taking, parsing and checking the configuration.
 """
 
+import os, tomllib, string, importlib
 from pathlib import Path
 from urllib.parse import urlparse
-import os, tomllib, string
 
 from .setting import (
     CONFIG_OTHER_LETTERS,
@@ -17,9 +17,14 @@ from .setting import (
     ENV_HF_ASSETS_CACHE_DIR,
     HF_MODELS_SUBDIR,
     HF_ASSETS_SUBDIR,
+    HNSWLIB_PATCHED_CHECK,
+    HNSWLIB_PATCHED_SEARCH,
 )
 from .utils import subject_spec_to_fs_name
-from .logging import log_error
+from .logging import (
+    log_info,
+    log_error,
+)
 
 
 def _get_conf_path(conf_env_name):
@@ -172,6 +177,46 @@ def _check_conf_header_origin(header_origin):
         ) from exc
 
 
+def _load_hnswlib(conf_libs):
+    if conf_libs["hnswlib"]["value"] == "":
+        try:
+            conf_libs["hnswlib"]["module"] = (
+                importlib.import_module("hnswlib")
+            )
+        except Exception as exc:
+            raise OSError("cannot import the standard hnswlib") from exc
+    else:
+        _check_conf_path_access(conf_libs["hnswlib"], is_dir=True)
+        found_libraries = list(Path(conf_libs["hnswlib"]["path"]).glob(
+            HNSWLIB_PATCHED_SEARCH
+        ))
+        if len(found_libraries) != 1:
+            raise OSError("cannot find the customized hnswlib")
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "hnswlib", found_libraries[0]
+            )
+            conf_libs["hnswlib"]["module"] = (
+                importlib.util.module_from_spec(spec)
+            )
+        except Exception as exc:
+            raise OSError("cannot import the customized hnswlib") from exc
+
+    try:
+        conf_libs["hnswlib"]["with_unique_docs"] = (
+            getattr(conf_libs["hnswlib"]["module"], HNSWLIB_PATCHED_CHECK)
+            if hasattr(conf_libs["hnswlib"]["module"], HNSWLIB_PATCHED_CHECK)
+            else False
+        )
+        if not conf_libs["hnswlib"]["with_unique_docs"]:
+            log_info(
+                "the imported hnswlib is without support "
+                "for knn search with unique docs"
+            )
+    except Exception as exc:
+        raise OSError("cannot check the imported hnswlib") from exc
+
+
 def _complete_conf(conf):
     _check_conf_header_origin(conf["server"]["header_origin"])
 
@@ -212,6 +257,8 @@ def _complete_conf(conf):
         is_dir=True,
         writable=True,
     )
+
+    _load_hnswlib(conf["libs"])
 
     conf["prompts"]["plain"]["content"] = _read_prompt_template(
         conf["prompts"]["plain"]["path"]
@@ -309,6 +356,7 @@ def _fill_conf(conf, conf_path):
             ["notices", ["note_users"]],
             ["feeds", ["subjects"]],
             ["data", ["storage_dir"]],
+            ["libs", ["hnswlib"]],
             ["embed", ["models_base_dir"]],
             ["prompts", ["plain", "explained", "common_end"]],
             ["users", ["regular_users", "guest_ids"]],
@@ -458,6 +506,7 @@ def get_conf(conf_env_name):
         "ui": {},
         "feeds": {},
         "data": {},
+        "libs": {},
         "embed": {},
         "sifting": {},
         "prompts": {},

@@ -57,9 +57,10 @@ HNSWDATA_SUBDIR = "hnsw"
 # static embeddings
 HNSWDATA_SPACE = "ip"
 HNSWDATA_INDEX = "hnsw_index.bin"
-HNSWDATA_LABELS = "hnsw_labels.npy"
-HNSWDATA_PARTS = "sentences.json"
 PRESIFTING_STATIC_OVERHANG = 5
+# lib for static embeddings
+HNSWLIB_PATCHED_CHECK = "WITH_UNIQUE_DOCS"
+HNSWLIB_PATCHED_SEARCH = "hnswlib.cpython*.so"
 # tests
 DATA_DIR_TEST = "test"
 DATA_DIR_TEST_CURR = "curr"

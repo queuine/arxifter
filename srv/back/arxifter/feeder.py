@@ -172,6 +172,7 @@ def _index_feeds(conf, data_dir, prev_data_dir, encoders):
 
         time_start = time.time()
         res = index_docs(
+            conf,
             encoders,
             _get_rss_feed_dir(data_dir, subject_fs),
             _get_rss_feed_dir(prev_data_dir, subject_fs),

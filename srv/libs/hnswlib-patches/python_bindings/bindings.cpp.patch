@@ -1,0 +1,105 @@
+--- hnswlib-0.8.0/python_bindings/bindings.cpp	2023-12-03 04:47:34.000000000 +0100
++++ hnswlib-updated/python_bindings/bindings.cpp	2026-02-12 05:50:51.836900937 +0100
+@@ -613,7 +613,8 @@
+         py::object input,
+         size_t k = 1,
+         int num_threads = -1,
+-        const std::function<bool(hnswlib::labeltype)>& filter = nullptr) {
++        const std::function<bool(hnswlib::labeltype)>& filter = nullptr,
++        bool unique_docs = false) {
+         py::array_t < dist_t, py::array::c_style | py::array::forcecast > items(input);
+         auto buffer = items.request();
+         hnswlib::labeltype* data_numpy_l;
+@@ -632,8 +633,10 @@
+                 num_threads = 1;
+             }
+ 
+-            data_numpy_l = new hnswlib::labeltype[rows * k];
+-            data_numpy_d = new dist_t[rows * k];
++            if (rows > 1) {
++                data_numpy_l = new hnswlib::labeltype[rows * k];
++                data_numpy_d = new dist_t[rows * k];
++            }
+ 
+             // Warning: search with a filter works slow in python in multithreaded mode. For best performance set num_threads=1
+             CustomFilterFunctor idFilter(filter);
+@@ -641,11 +644,25 @@
+ 
+             if (normalize == false) {
+                 ParallelFor(0, rows, num_threads, [&](size_t row, size_t threadId) {
+-                    std::priority_queue<std::pair<dist_t, hnswlib::labeltype >> result = appr_alg->searchKnn(
+-                        (void*)items.data(row), k, p_idFilter);
+-                    if (result.size() != k)
+-                        throw std::runtime_error(
+-                            "Cannot return the results in a contiguous 2D array. Probably ef or M is too small");
++                    std::priority_queue<std::pair<dist_t, hnswlib::labeltype >> result;
++                    if (unique_docs) {
++                        result = appr_alg->searchKnn4Docs((void*)items.data(row), k, p_idFilter);
++                    } else {
++                        result = appr_alg->searchKnn((void*)items.data(row), k, p_idFilter);
++                    }
++
++                    if (rows == 1) {
++                        k = result.size();
++                        if (k == 0) {
++                            throw std::runtime_error("Empty result.");
++                        }
++                        data_numpy_l = new hnswlib::labeltype[k];
++                        data_numpy_d = new dist_t[k];
++                    } else {
++                        if (result.size() != k)
++                            throw std::runtime_error(
++                                "Cannot return the results in a contiguous 2D array. Probably ef or M is too small");
++                    }
+                     for (int i = k - 1; i >= 0; i--) {
+                         auto& result_tuple = result.top();
+                         data_numpy_d[row * k + i] = result_tuple.first;
+@@ -661,11 +678,25 @@
+                     size_t start_idx = threadId * dim;
+                     normalize_vector((float*)items.data(row), (norm_array.data() + start_idx));
+ 
+-                    std::priority_queue<std::pair<dist_t, hnswlib::labeltype >> result = appr_alg->searchKnn(
+-                        (void*)(norm_array.data() + start_idx), k, p_idFilter);
+-                    if (result.size() != k)
+-                        throw std::runtime_error(
+-                            "Cannot return the results in a contiguous 2D array. Probably ef or M is too small");
++                    std::priority_queue<std::pair<dist_t, hnswlib::labeltype >> result;
++                    if (unique_docs) {
++                        result = appr_alg->searchKnn4Docs((void*)(norm_array.data() + start_idx), k, p_idFilter);
++                    } else {
++                        result = appr_alg->searchKnn((void*)(norm_array.data() + start_idx), k, p_idFilter);
++                    }
++
++                    if (rows == 1) {
++                        k = result.size();
++                        if (k == 0) {
++                            throw std::runtime_error("Empty result.");
++                        }
++                        data_numpy_l = new hnswlib::labeltype[k];
++                        data_numpy_d = new dist_t[k];
++                    } else {
++                        if (result.size() != k)
++                            throw std::runtime_error(
++                                "Cannot return the results in a contiguous 2D array. Probably ef or M is too small");
++                    }
+                     for (int i = k - 1; i >= 0; i--) {
+                         auto& result_tuple = result.top();
+                         data_numpy_d[row * k + i] = result_tuple.first;
+@@ -909,6 +940,7 @@
+ 
+ PYBIND11_PLUGIN(hnswlib) {
+         py::module m("hnswlib");
++        m.attr("WITH_UNIQUE_DOCS") = py::bool_(true);
+ 
+         py::class_<Index<float>>(m, "Index")
+         .def(py::init(&Index<float>::createFromParams), py::arg("params"))
+@@ -927,7 +959,8 @@
+             py::arg("data"),
+             py::arg("k") = 1,
+             py::arg("num_threads") = -1,
+-            py::arg("filter") = py::none())
++            py::arg("filter") = py::none(),
++            py::arg("unique_docs") = false)
+         .def("add_items",
+             &Index<float>::addItems,
+             py::arg("data"),

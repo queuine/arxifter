@@ -72,6 +72,14 @@ pruning = true
 # (this value is used only when pruning is set to true)
 kept_days = 7
 
+[libs]
+# directory with a version of hnswlib that has knn searches
+# with support for returning unique docs;
+# empty path means that hnswlib gets loaded from standard
+# locations of python packages;
+hnswlib = ""
+# hnswlib = "../libs/hnswlib/"
+
 [embed]
 # models from HF are expected to be stored at "hub" subdirectory
 # of the directory set to the "models_base_dir" key

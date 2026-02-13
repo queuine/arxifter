@@ -9,12 +9,11 @@ These feed embeddings are done as batches during the stage
 when RSS feeds are downloaded and ingested.
 """
 
-import os, json, itertools, shutil
+import os, json, shutil
 from pathlib import Path
 
 import numpy as np
 import spacy
-import hnswlib
 
 from .setting import (
     NEW_DIRS_MODE,
@@ -23,15 +22,13 @@ from .setting import (
     HNSWDATA_SUBDIR,
     HNSWDATA_SPACE,
     HNSWDATA_INDEX,
-    HNSWDATA_LABELS,
-    HNSWDATA_PARTS,
     INFO_FILE_NAME,
     EMBEDDING_DIMENSION_KEY,
 )
 from .logging import log_error
 
 
-def _make_vec_dir(base_path):
+def _make_vec_dirs(base_path):
     vec_dir = os.path.join(base_path, VECTORS_SUBDIR)
     hnsw_dir = os.path.join(base_path, HNSWDATA_SUBDIR)
     try:
@@ -115,7 +112,7 @@ def _copy_present_vectors(base_path, prev_base_path):
                 )
 
 
-def _index_docs_sentences(encoder, base_path, debugging=False):
+def _index_docs_sentences(conf, encoder, base_path):
     """
     Does the RSS embedding via:
     * reading the saved docs previously made from RSS feeds,
@@ -141,8 +138,7 @@ def _index_docs_sentences(encoder, base_path, debugging=False):
 
     # taking and embedding sentences of the articles
     embeddings = []
-    lengths = []
-    sentences_all = []
+    overall_count = 0
     for doc_path in sorted(Path(
         base_path,
         DOCUMENTS_SUBDIR,
@@ -153,10 +149,8 @@ def _index_docs_sentences(encoder, base_path, debugging=False):
             try:
                 doc_vecs = list(np.load(vecs_path, allow_pickle=False))
                 embeddings.append(doc_vecs)
-                lengths.append(len(doc_vecs))
+                overall_count += len(doc_vecs)
                 got_vecs = True
-                if debugging:
-                    sentences_all.append([""] * len(doc_vecs))
             except Exception:
                 got_vecs = False
         if got_vecs:
@@ -167,11 +161,9 @@ def _index_docs_sentences(encoder, base_path, debugging=False):
             sentences = [doc["title"]] + [
                 str(item) for item in nlp(doc["abstract"]).sents
             ]
-            if debugging:
-                sentences_all.append(sentences)
             doc_vecs = encoder["method"](sentences)
             embeddings.append(doc_vecs)
-            lengths.append(len(doc_vecs))
+            overall_count += len(doc_vecs)
             np.save(
                 vecs_path,
                 np.array(doc_vecs),
@@ -185,30 +177,6 @@ def _index_docs_sentences(encoder, base_path, debugging=False):
                 str(exc),
             ]))
             break
-
-    if error_occurred:
-        return None
-
-    # debugging-only part
-    if debugging:
-        try:
-            with open(
-                Path(
-                    base_path,
-                    HNSWDATA_SUBDIR,
-                    HNSWDATA_PARTS,
-                ),
-                "w",
-                encoding="utf8",
-            ) as fh:
-                json.dump(list(itertools.chain(*sentences_all)), fh)
-        except Exception as exc:
-            error_occurred = True
-            log_error("\n".join([
-                "cannot save debugging information",
-                str(exc),
-            ]))
-            error_occurred = True
 
     if error_occurred:
         return None
@@ -231,31 +199,18 @@ def _index_docs_sentences(encoder, base_path, debugging=False):
 
     # putting the embedded text parts into an index set via hnswlib,
     try:
-        labels = []
-        item_count = sum(lengths)
-        p = hnswlib.Index(space=HNSWDATA_SPACE, dim=embed_dim)
-        p.init_index(max_elements=item_count)
-        start_item_idx = 0
+        p = conf["libs"]["hnswlib"]["module"].Index(
+            space=HNSWDATA_SPACE, dim=embed_dim
+        )
+        p.init_index(max_elements=overall_count)
         for doc_idx, doc_embeds in enumerate(embeddings):
-            doc_sntc_count = lengths[doc_idx]
-            ids = np.arange(start_item_idx, start_item_idx + doc_sntc_count)
-            start_item_idx += lengths[doc_idx]
+            ids = (doc_idx << 32) + np.arange(len(doc_embeds))
             p.add_items(doc_embeds, ids)
-            labels += ([doc_idx] * doc_sntc_count)
         p.save_index(str(Path(
             base_path,
             HNSWDATA_SUBDIR,
             HNSWDATA_INDEX,
         )))
-        np.save(
-            Path(
-                base_path,
-                HNSWDATA_SUBDIR,
-                HNSWDATA_LABELS,
-            ),
-            np.array(labels),
-            allow_pickle=False,
-        )
     except Exception as exc:
         error_occurred = True
         log_error("\n".join([
@@ -407,7 +362,7 @@ def _save_embedding_dimensions(
     return not error_occurred
 
 
-def index_docs(encoders, base_path, prev_base_path, debugging=False):
+def index_docs(conf, encoders, base_path, prev_base_path):
     """
     Feed texts get indexed here:
     * in a split-text way via a static encoder,
@@ -415,14 +370,14 @@ def index_docs(encoders, base_path, prev_base_path, debugging=False):
     If some articles already have embeddings created from a previous batch,
     they get reused to limit the computational needs.
     """
-    if not _make_vec_dir(base_path):
+    if not _make_vec_dirs(base_path):
         return False
 
     if prev_base_path is not None:
         _copy_present_vectors(base_path, prev_base_path)
 
     static_embed_dim = _index_docs_sentences(
-        encoders["static"], base_path, debugging
+        conf, encoders["static"], base_path
     )
     if static_embed_dim is None:
         return False

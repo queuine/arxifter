@@ -1,0 +1,16 @@
+--- hnswlib-0.8.0/hnswlib/bruteforce.h	2023-12-03 04:47:34.000000000 +0100
++++ hnswlib-updated/hnswlib/bruteforce.h	2026-02-12 02:55:36.182145568 +0100
+@@ -135,6 +135,13 @@
+     }
+ 
+ 
++    std::priority_queue<std::pair<dist_t, labeltype >>
++    searchKnn4Docs(const void *query_data, size_t k, BaseFilterFunctor* isIdAllowed = nullptr) const {
++        std::priority_queue<std::pair<dist_t, labeltype >> result;
++        throw std::runtime_error("Not implemented.");
++    }
++
++
+     void saveIndex(const std::string &location) {
+         std::ofstream output(location, std::ios::binary);
+         std::streampos position;

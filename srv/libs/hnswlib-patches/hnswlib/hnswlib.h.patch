@@ -1,0 +1,12 @@
+--- hnswlib-0.8.0/hnswlib/hnswlib.h	2023-12-03 04:47:34.000000000 +0100
++++ hnswlib-updated/hnswlib/hnswlib.h	2026-02-11 13:31:53.360655745 +0100
+@@ -191,6 +191,9 @@
+     virtual std::priority_queue<std::pair<dist_t, labeltype>>
+         searchKnn(const void*, size_t, BaseFilterFunctor* isIdAllowed = nullptr) const = 0;
+ 
++    virtual std::priority_queue<std::pair<dist_t, labeltype>>
++        searchKnn4Docs(const void*, size_t, BaseFilterFunctor* isIdAllowed = nullptr) const = 0;
++
+     // Return k nearest neighbor in the order of closer fist
+     virtual std::vector<std::pair<dist_t, labeltype>>
+         searchKnnCloserFirst(const void* query_data, size_t k, BaseFilterFunctor* isIdAllowed = nullptr) const;

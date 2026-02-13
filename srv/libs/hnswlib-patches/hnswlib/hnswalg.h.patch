@@ -1,0 +1,225 @@
+--- hnswlib-0.8.0/hnswlib/hnswalg.h	2023-12-03 04:47:34.000000000 +0100
++++ hnswlib-updated/hnswlib/hnswalg.h	2026-02-12 05:43:45.219002678 +0100
+@@ -7,6 +7,7 @@
+ #include <stdlib.h>
+ #include <assert.h>
+ #include <unordered_set>
++#include <unordered_map>
+ #include <list>
+ #include <memory>
+ 
+@@ -199,6 +200,11 @@
+     }
+ 
+ 
++    inline tableint getExternalDocId(tableint internal_id) const {
++        return static_cast<tableint>((*getExternalLabeLp(internal_id)) >> 32);
++    }
++
++
+     inline char *getDataByInternalId(tableint internal_id) const {
+         return (data_level0_memory_ + internal_id * size_data_per_element_ + offsetData_);
+     }
+@@ -440,6 +446,149 @@
+     }
+ 
+ 
++    // bare_bone_search means there is no check for deletions and stop condition is ignored in return of extra performance
++    template <bool bare_bone_search = true, bool collect_metrics = false>
++    std::priority_queue<std::pair<dist_t, labeltype >>
++    searchBaseLayerST4Docs(
++        tableint ep_id,
++        const void *data_point,
++        size_t k,
++        size_t ef,
++        BaseFilterFunctor* isIdAllowed = nullptr) const {
++        VisitedList *vl = visited_list_pool_->getFreeVisitedList();
++        vl_type *visited_array = vl->mass;
++        vl_type visited_array_tag = vl->curV;
++
++        std::priority_queue<std::pair<dist_t, labeltype >> result;
++        std::priority_queue<std::pair<dist_t, tableint>, std::vector<std::pair<dist_t, tableint>>, CompareByFirst> top_candidates;
++        std::priority_queue<std::pair<dist_t, tableint>, std::vector<std::pair<dist_t, tableint>>, CompareByFirst> candidate_set;
++        std::unordered_map<tableint, tableint> top_docs;
++
++        dist_t lowerBound;
++        if (bare_bone_search || 
++            (!isMarkedDeleted(ep_id) && ((!isIdAllowed) || (*isIdAllowed)(getExternalLabel(ep_id))))) {
++            char* ep_data = getDataByInternalId(ep_id);
++            dist_t dist = fstdistfunc_(data_point, ep_data, dist_func_param_);
++            lowerBound = dist;
++            top_candidates.emplace(dist, ep_id);
++            ++top_docs[getExternalDocId(ep_id)];
++            candidate_set.emplace(-dist, ep_id);
++        } else {
++            lowerBound = std::numeric_limits<dist_t>::max();
++            candidate_set.emplace(-lowerBound, ep_id);
++        }
++
++        visited_array[ep_id] = visited_array_tag;
++
++        while (!candidate_set.empty()) {
++            std::pair<dist_t, tableint> current_node_pair = candidate_set.top();
++            dist_t candidate_dist = -current_node_pair.first;
++
++            bool flag_stop_search;
++            if (bare_bone_search) {
++                flag_stop_search = candidate_dist > lowerBound;
++            } else {
++                const bool flag_stop_search_pre = (top_docs.size() >= k) && (top_candidates.size() >= ef);
++                flag_stop_search = (candidate_dist > lowerBound) && flag_stop_search_pre;
++            }
++            if (flag_stop_search) {
++                break;
++            }
++            candidate_set.pop();
++
++            tableint current_node_id = current_node_pair.second;
++            int *data = (int *) get_linklist0(current_node_id);
++            size_t size = getListCount((linklistsizeint*)data);
++//                bool cur_node_deleted = isMarkedDeleted(current_node_id);
++            if (collect_metrics) {
++                metric_hops++;
++                metric_distance_computations+=size;
++            }
++
++#ifdef USE_SSE
++            _mm_prefetch((char *) (visited_array + *(data + 1)), _MM_HINT_T0);
++            _mm_prefetch((char *) (visited_array + *(data + 1) + 64), _MM_HINT_T0);
++            _mm_prefetch(data_level0_memory_ + (*(data + 1)) * size_data_per_element_ + offsetData_, _MM_HINT_T0);
++            _mm_prefetch((char *) (data + 2), _MM_HINT_T0);
++#endif
++
++            for (size_t j = 1; j <= size; j++) {
++                int candidate_id = *(data + j);
++//                    if (candidate_id == 0) continue;
++#ifdef USE_SSE
++                _mm_prefetch((char *) (visited_array + *(data + j + 1)), _MM_HINT_T0);
++                _mm_prefetch(data_level0_memory_ + (*(data + j + 1)) * size_data_per_element_ + offsetData_,
++                                _MM_HINT_T0);  ////////////
++#endif
++                if (!(visited_array[candidate_id] == visited_array_tag)) {
++                    visited_array[candidate_id] = visited_array_tag;
++
++                    char *currObj1 = (getDataByInternalId(candidate_id));
++                    dist_t dist = fstdistfunc_(data_point, currObj1, dist_func_param_);
++
++                    const bool flag_consider_candidate_pre = (top_docs.size() < k) || (top_candidates.size() < ef);
++                    const bool flag_consider_candidate = flag_consider_candidate_pre || (lowerBound > dist);
++
++                    if (flag_consider_candidate) {
++                        candidate_set.emplace(-dist, candidate_id);
++#ifdef USE_SSE
++                        _mm_prefetch(data_level0_memory_ + candidate_set.top().second * size_data_per_element_ +
++                                        offsetLevel0_,  ///////////
++                                        _MM_HINT_T0);  ////////////////////////
++#endif
++
++                        if (bare_bone_search || 
++                            (!isMarkedDeleted(candidate_id) && ((!isIdAllowed) || (*isIdAllowed)(getExternalLabel(candidate_id))))) {
++                            top_candidates.emplace(dist, candidate_id);
++                            ++top_docs[getExternalDocId(candidate_id)];
++                        }
++
++                        while (
++                                (
++                                    (top_docs.size() > k) || (
++                                        (top_docs.size() == k) && (top_docs[getExternalDocId(top_candidates.top().second)] > 1)
++                                    )
++                                )
++                                && (top_candidates.size() > ef)
++                            ) {
++                            const tableint id = top_candidates.top().second;
++                            top_candidates.pop();
++                            const labeltype doc_id = getExternalDocId(id);
++                            if ((--top_docs[doc_id]) == 0) {
++                                top_docs.erase(doc_id);
++                            }
++                        }
++
++                        if (!top_candidates.empty())
++                            lowerBound = top_candidates.top().first;
++                    }
++                }
++            }
++        }
++
++        visited_list_pool_->releaseVisitedList(vl);
++        while (top_docs.size() > k) {
++            const tableint id = top_candidates.top().second;
++            top_candidates.pop();
++            const labeltype doc_id = getExternalDocId(id);
++            if ((--top_docs[doc_id]) == 0) {
++                top_docs.erase(doc_id);
++            }
++        }
++        while (top_docs.size() > 0) {
++            const std::pair<dist_t, tableint> rez = top_candidates.top();
++            top_candidates.pop();
++            const labeltype doc_id = getExternalDocId(rez.second);
++            if ((--top_docs[doc_id]) == 0) {
++                top_docs.erase(doc_id);
++                result.push(std::pair<dist_t, labeltype>(rez.first, getExternalLabel(rez.second)));
++            }
++        }
++        assert(top_candidates.size() == 0);
++        return result;
++    }
++
++
+     void getNeighborsByHeuristic2(
+         std::priority_queue<std::pair<dist_t, tableint>, std::vector<std::pair<dist_t, tableint>>, CompareByFirst> &top_candidates,
+         const size_t M) {
+@@ -1324,6 +1473,52 @@
+     }
+ 
+ 
++    std::priority_queue<std::pair<dist_t, labeltype >>
++    searchKnn4Docs(const void *query_data, size_t k, BaseFilterFunctor* isIdAllowed = nullptr) const {
++        const std::priority_queue<std::pair<dist_t, labeltype >> empty;
++        if (cur_element_count == 0) return empty;
++
++        tableint currObj = enterpoint_node_;
++        dist_t curdist = fstdistfunc_(query_data, getDataByInternalId(enterpoint_node_), dist_func_param_);
++
++        for (int level = maxlevel_; level > 0; level--) {
++            bool changed = true;
++            while (changed) {
++                changed = false;
++                unsigned int *data;
++
++                data = (unsigned int *) get_linklist(currObj, level);
++                int size = getListCount(data);
++                metric_hops++;
++                metric_distance_computations+=size;
++
++                tableint *datal = (tableint *) (data + 1);
++                for (int i = 0; i < size; i++) {
++                    tableint cand = datal[i];
++                    if (cand < 0 || cand > max_elements_)
++                        throw std::runtime_error("cand error");
++                    dist_t d = fstdistfunc_(query_data, getDataByInternalId(cand), dist_func_param_);
++
++                    if (d < curdist) {
++                        curdist = d;
++                        currObj = cand;
++                        changed = true;
++                    }
++                }
++            }
++        }
++
++        bool bare_bone_search = !num_deleted_ && !isIdAllowed;
++        if (bare_bone_search) {
++            return searchBaseLayerST4Docs<true>(
++                    currObj, query_data, k, std::max(ef_, k), isIdAllowed);
++        } else {
++            return searchBaseLayerST4Docs<false>(
++                    currObj, query_data, k, std::max(ef_, k), isIdAllowed);
++        }
++    }
++
++
+     std::vector<std::pair<dist_t, labeltype >>
+     searchStopConditionClosest(
+         const void *query_data,

@@ -117,10 +117,10 @@ def test_feed_index():
                 ]))
                 continue
             if not index_docs(
+                conf,
                 encoders,
                 str(item),
                 str(prev_item),
-                True,
             ):
                 got_error = True
                 log_error("\n".join([

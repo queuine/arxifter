@@ -1,0 +1,11 @@
+--- hnswlib-0.8.0/python_bindings/LazyIndex.py	2023-12-03 04:47:34.000000000 +0100
++++ hnswlib-updated/python_bindings/LazyIndex.py	2026-02-12 05:46:21.359526685 +0100
+@@ -24,7 +24,7 @@
+         if self.max_elements==0:
+             return []
+         return super().get_items(ids)
+-    def knn_query(self, data,k=1, num_threads=-1):
++    def knn_query(self, data, k=1, num_threads=-1, filter=None, unique_docs = False):
+         if self.max_elements==0:
+             return [], []
+         return super().knn_query(data, k, num_threads)
