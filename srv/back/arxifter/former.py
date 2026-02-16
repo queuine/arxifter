@@ -20,10 +20,12 @@ from .setting import (
     LLM_MATCHES_KEYS,
     FALSE_VALUES_STR,
     LLM_SUGGESTION_KEY,
+    LLM_TITLE_START_KEYS,
     ARTICLE_KEY_RANK_VAR,
     VIEW_WARNING_KEY,
     VIEW_WARNING_ANSWER_WRONG,
     ARTICLE_RECOGNIZING_THRESHOLD,
+    DOCUMENTS_SUBDIR,
 )
 from .utils import (
     get_doc_name,
@@ -77,99 +79,140 @@ def _get_article_rank(article):
     return [None, None]
 
 
-def _back_remap_article_rank(art_rank, similar_articles, article, logger):
-    # getting the actual article name-number from the answered article;
-    # both the LLM-provided and back-mapped ranks are counted from 1;
-    title_key = None
-    remapped_rank = None
+def _check_rank_within_similar_articles(
+    art_rank, similar_articles, article, logger
+):
+    # checking whether the LLM-reported artnum (counted from 1) is correct;
+    # the checking is via comparing the respectively reported title;
+    # notice that the output article rank is counted from 0;
+    checked_rank = None
     try:
-        # direct back-mapping from sequence number within presifted set
-        # to sequence number within overall feed batch;
+        # turning the from-1 couunting to from-0 couunting;
+        # that if the artnum is a positive number at first;
         if (
             str(art_rank).isdigit()
             and str(art_rank).isascii()
-            and int(art_rank) > 0
+            and (int(art_rank) > 0)
+            and (int(art_rank) <= len(similar_articles))
         ):
-            remapped_rank = (
-                similar_articles[int(art_rank) - 1]["name"].lstrip("0")
-            )
+            checked_rank = int(art_rank) - 1
     except Exception:
-        remapped_rank = None
+        checked_rank = None
 
     # since an LLM can provide the article number incorrectly
     # (weaker inferring models tend to hallucinate it occassionally),
     # a checking/fixing of the back-mapping is done by comparing
-    # article titles with provided (start) of title;
+    # article titles with the provided (start) of title;
     # it is somewhat involved, but that's it;
+    title_key = None
+    title_prefix = None
     try:
-        title = None
         if type(article) is dict:
             for key, value in article.items():
-                if "title" in str(key).lower():
-                    title_key = key
-                    title = str(value)
+                for title_test_key in LLM_TITLE_START_KEYS:
+                    if title_test_key in str(key).lower():
+                        title_key = key
+                        if value is not None:
+                            title_prefix = str(value).strip()
+                        break
+                if title_key is not None:
                     break
-        if title is not None:
-            # the checking can be done only when a title is provided by LLM
-            title_len = len(title)
-            # computing similarities between the provided and actual titles
-            simils = [
-                [
-                    SequenceMatcher(
-                        None, title, sim_art["content"]["title"][:title_len]
-                    ).ratio(),
-                    sim_art["name"].lstrip("0"),
-                ]
-                for sim_art in similar_articles
-            ]
-            # finding out the closest title (and its article)
-            ranked = sorted(
-                simils,
-                key=lambda item: item[0],
-                reverse=True,
-            )
-            closest_rank = ranked[0][1]
-            # if it agrees with the directly back-mapped article
-            # (or if the diret back-mapping failed), taking it;
-            if remapped_rank in [None, closest_rank]:
-                return [str(closest_rank), title_key]
+    except Exception:
+        title_prefix = None
 
-            # if here, then some different (than back-mapped) article
-            # has its title more similar to the LLM-provided title
-            # than the title of the directly back-mapped article;
-            # thus it seems that the back-mapping has to be fixed;
-            closest_simil = ranked[0][0]
-            try:
-                remapped_simil = simils[int(art_rank) - 1][0]
-            except Exception:
-                remapped_simil = 0
-            # only doing the fixing if the difference is big enough;
-            # the similarities of the used SequenceMatcher method
-            # are between 1.0 (identical) and 0.0 (completely differing);
-            # according to seen values, e.g. 0.1 threshold makes sense here
-            # (it pertains to a difference between two similarities);
-            if (
-                (closest_simil - remapped_simil)
-                > ARTICLE_RECOGNIZING_THRESHOLD
-            ):
-                logger.info(
-                    "inferring LLM has apparently reported an artnum wrong"
-                )
-                return [str(closest_rank), title_key]
+    # the checking can be done only when a title is provided by LLM;
+    # notice that providing the key of the LLM-provided article title too,
+    # b/c it is used to avoid showing it at UI
+    # (where the title from the article itself is showed);
+    if title_prefix in [None, ""]:
+        return [
+            checked_rank,
+            title_key,
+        ]
+
+    try:
+        title_len = len(title_prefix)
+        # computing similarities between the provided and actual titles
+        simils = [
+            [
+                SequenceMatcher(
+                    None,
+                    title_prefix,
+                    sim_art["content"]["title"][:title_len],
+                ).ratio(),
+                idx,
+            ]
+            for idx, sim_art in enumerate(similar_articles)
+        ]
+        # finding out the closest title (and the respective article rank)
+        ranked = sorted(
+            simils,
+            key=lambda item: item[0],
+            reverse=True,
+        )
+        closest_rank = ranked[0][1]
+        # if it agrees with the reported article number
+        # (or if the reported number is not a valid number),
+        # taking the rank of this best-matching title;
+        if checked_rank in [None, closest_rank]:
+            return [closest_rank, title_key]
+
+        # if here, then some different (than reported) article
+        # has its title more similar to the LLM-provided title
+        # than the title of the reported article;
+        closest_simil = ranked[0][0]
+        try:
+            reported_simil = simils[checked_rank][0]
+        except Exception:
+            reported_simil = 0
+        # thus it seems that the reported number has to be changed;
+        # but only doing the fixing if the difference is big enough;
+        # the similarities of the used SequenceMatcher method
+        # are between 1.0 (identical) and 0.0 (completely differing);
+        # according to seen values, e.g. 0.1 threshold makes sense here
+        # (it pertains to a difference between two similarities);
+        if (
+            (closest_simil - reported_simil)
+            > ARTICLE_RECOGNIZING_THRESHOLD
+        ):
+            logger.info(
+                "inferring LLM has apparently reported an artnum wrong"
+            )
+            return [closest_rank, title_key]
+        # if here, the similarity differences were not that big;
+        return [checked_rank, title_key]
     except Exception:
         pass
 
-    # returning the back-mapped article number;
-    # that along with key holding the LLM-provided article title,
-    # since it gets used to avoid showing it at UI
-    # (where the title from the article itself is showed);
+    # if here, then s/t went wrong during the checking of the title;
+    # in such a case returning the reported article number
+    # (turned to from-0 counted) as having nothing better here;
+    return [checked_rank, title_key]
+
+
+def _back_remap_article_rank(art_rank, similar_articles, article, logger):
+    doc_rank, title_key = _check_rank_within_similar_articles(
+        art_rank, similar_articles, article, logger
+    )
+
+    taken_doc = None
+    try:
+        if doc_rank is not None:
+            taken_doc = similar_articles[doc_rank]
+    except Exception:
+        taken_doc = None
+
+    if taken_doc is None:
+        return [None, None, title_key]
+
     return [
-        str(remapped_rank) if remapped_rank is not None else None,
+        taken_doc["name"].lstrip("0"),
+        taken_doc["subject"],
         title_key,
     ]
 
 
-def _get_article_path(art_rank, docs_dir):
+def _get_article_path(art_rank, art_subject, data_dir):
     if art_rank is None:
         return None
 
@@ -181,7 +224,9 @@ def _get_article_path(art_rank, docs_dir):
     ):
         return None
 
-    art_path = os.path.join(docs_dir, get_doc_name(art_rank))
+    art_path = os.path.join(
+        data_dir, art_subject, DOCUMENTS_SUBDIR, get_doc_name(art_rank)
+    )
 
     if (
         (not os.path.exists(art_path))
@@ -216,7 +261,7 @@ def _take_article_data(logger, article_path, addendum, leave_keys):
     return article
 
 
-def _make_regular_response(logger, answer, similar_articles, docs_dir):
+def _make_regular_response(logger, answer, similar_articles, data_dir):
     response = []
 
     for item in _get_item_list(answer):
@@ -228,10 +273,10 @@ def _make_regular_response(logger, answer, similar_articles, docs_dir):
             with_parts = True
             art_rank_key, art_rank = _get_article_rank(item)
 
-        art_rank, title_key = _back_remap_article_rank(
+        art_rank, art_subject, title_key = _back_remap_article_rank(
             art_rank, similar_articles, item, logger
         )
-        article_path = _get_article_path(art_rank, docs_dir)
+        article_path = _get_article_path(art_rank, art_subject, data_dir)
         if article_path is None:
             response.append({
                 VIEW_WARNING_KEY: VIEW_WARNING_ANSWER_WRONG,
@@ -251,13 +296,13 @@ def _make_regular_response(logger, answer, similar_articles, docs_dir):
 
 
 def _make_suggestion_response(
-    logger, suggestion_article, similar_articles, suggestion_key, docs_dir
+    logger, suggestion_article, similar_articles, suggestion_key, data_dir
 ):
     art_rank_key, art_rank = _get_article_rank(suggestion_article)
-    art_rank, title_key = _back_remap_article_rank(
+    art_rank, art_subject, title_key = _back_remap_article_rank(
         art_rank, similar_articles, suggestion_article, logger
     )
-    article_path = _get_article_path(art_rank, docs_dir)
+    article_path = _get_article_path(art_rank, art_subject, data_dir)
     if article_path is None:
         return []
 
@@ -273,7 +318,7 @@ def _make_suggestion_response(
     return article if article is not None else []
 
 
-def form_response(get_logger, answer, similar_articles, docs_dir):
+def form_response(get_logger, answer, similar_articles, data_dir):
     """
     Provides response to user via:
     * taking LLM answer,
@@ -292,12 +337,12 @@ def form_response(get_logger, answer, similar_articles, docs_dir):
             logger,
             answer,
             similar_articles,
-            docs_dir,
+            data_dir,
         )
     return _make_suggestion_response(
         logger,
         suggestion_article,
         similar_articles,
         suggestion_key,
-        docs_dir,
+        data_dir,
     )

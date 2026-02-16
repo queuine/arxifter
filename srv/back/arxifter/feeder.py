@@ -39,12 +39,12 @@ from .encoder import get_encoders
 from .indexer import index_docs
 
 
-def _get_rss_feed_dir(data_dir, subject_fs):
-    return os.path.join(data_dir, subject_fs)
+def _get_rss_feed_dir(data_dir, subject):
+    return os.path.join(data_dir, subject)
 
 
-def _get_rss_feed_path(data_dir, subject_fs):
-    return os.path.join(data_dir, subject_fs, RSS_FEED_FILE_NAME)
+def _get_rss_feed_path(data_dir, subject):
+    return os.path.join(data_dir, subject, RSS_FEED_FILE_NAME)
 
 
 def _get_data_dir_perm_parts(current_dt):
@@ -81,9 +81,9 @@ def _prepare_data_dirs(conf, current_dt):
     )
     try:
         os.makedirs(data_dir, mode=NEW_DIRS_MODE, exist_ok=False)
-        for _, subject_fs in conf["feeds"]["subjects"]["catalog"].items():
+        for subject in conf["feeds"]["subjects"]["list"]:
             os.makedirs(
-                os.path.join(data_dir, subject_fs),
+                os.path.join(data_dir, subject),
                 mode=NEW_DIRS_MODE,
                 exist_ok=True
             )
@@ -97,11 +97,9 @@ def _prepare_data_dirs(conf, current_dt):
 def _take_feeds(conf, data_dir):
     got_error = False
     first_download = True
-    for subject_spec, subject_fs in (
-        conf["feeds"]["subjects"]["catalog"].items()
-    ):
-        feed_url = subject_spec_to_feed_url(subject_spec)
-        feed_path = _get_rss_feed_path(data_dir, subject_fs)
+    for subject in conf["feeds"]["subjects"]["list"]:
+        feed_url = subject_spec_to_feed_url(subject)
+        feed_path = _get_rss_feed_path(data_dir, subject)
         got_feed = False
         time_to_sleep = RSS_FEED_TAKE_SLEEP
         for attempt in range(ATTEMPT_COUNT_FEED):
@@ -111,7 +109,7 @@ def _take_feeds(conf, data_dir):
                 first_download = False
             time_to_sleep *= 2
             if conf["debugging"]["feed_ingest"]:
-                log_debug(f"taking {subject_spec}: attempt #{attempt + 1}")
+                log_debug(f"taking {subject}: attempt #{attempt + 1}")
             try:
                 with open(feed_path, "wb") as fh:
                     with urllib.request.urlopen(feed_url) as response:
@@ -129,17 +127,17 @@ def _take_feeds(conf, data_dir):
 
 def _parse_feeds(conf, data_dir):
     got_error = False
-    for _, subject_fs in conf["feeds"]["subjects"]["catalog"].items():
+    for subject in conf["feeds"]["subjects"]["list"]:
         try:
             if not parse_feed_save_docs(
-                _get_rss_feed_path(data_dir, subject_fs),
+                _get_rss_feed_path(data_dir, subject),
             ):
                 got_error = True
-                log_error(f"could not parse a feed: {subject_fs}")
+                log_error(f"could not parse a feed: {subject}")
                 break
         except Exception as exc:
             got_error = True
-            log_error(f"feed parsing failed on {subject_fs}:\n" + str(exc))
+            log_error(f"feed parsing failed on {subject}:\n" + str(exc))
             break
     return not got_error
 
@@ -164,7 +162,7 @@ def _index_feeds(conf, data_dir, prev_data_dir, encoders):
     got_error = False
     time_spans = []
     first_subject = True
-    for _, subject_fs in conf["feeds"]["subjects"]["catalog"].items():
+    for subject in conf["feeds"]["subjects"]["list"]:
         if not first_subject:
             time.sleep(RSS_FEED_INDEX_SLEEP)
         else:
@@ -174,8 +172,8 @@ def _index_feeds(conf, data_dir, prev_data_dir, encoders):
         res = index_docs(
             conf,
             encoders,
-            _get_rss_feed_dir(data_dir, subject_fs),
-            _get_rss_feed_dir(prev_data_dir, subject_fs),
+            _get_rss_feed_dir(data_dir, subject),
+            _get_rss_feed_dir(prev_data_dir, subject),
         )
         time_spans.append(time.time() - time_start)
         if not res:

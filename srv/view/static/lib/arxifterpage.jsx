@@ -277,7 +277,10 @@ function ArxifterPage() {
                 );
                 popupUsersRef.current?.setSessionState(sessionOK);
             } else {
-                popupUsersRef.current?.setSessionState(sessionKO);
+                const reason = (
+                    (result["reason"]?.length > 0) ? result["reason"] : null
+                );
+                popupUsersRef.current?.setSessionState(sessionKO, reason);
             }
         }).catch((error) => {
             popupUsersRef.current?.setSessionState(sessionKO);

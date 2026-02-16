@@ -33,7 +33,7 @@ class FormQuery extends React.Component {
 
         this.queryLabel = ""
             + `Query on the last ${this.lastArticlesCount} articles `
-            + "(per feed) at bioRχiv";
+            + "(per subject) at bioRχiv";
 
         this.queryPlaceholder = [
             "",

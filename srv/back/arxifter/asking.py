@@ -1,18 +1,21 @@
 #!/usr/bin/env python
 """
-Management of processing the user questions on biorxiv feeds,
-with that being put to an LLM.
+Management of processing of user questions on biorxiv feeds,
+with local presifting, followed by a use of a remote LLM.
 """
 
-import os, time, asyncio, functools
+import time, asyncio, functools
 
 from .setting import (
     SESSION_EXPIRED_KEY,
     MIN_QUERY_LEN,
     MAX_QUERY_LEN,
-    DOCUMENTS_SUBDIR,
 )
-from .utils import get_current_data_dir
+from .utils import (
+    get_current_data_dir,
+    subject_spec_to_base_subjects,
+    is_access_ok,
+)
 from .keys import get_user_api_key
 from .loader import presift_docs
 from .mocking import get_mocked_answer
@@ -52,8 +55,23 @@ def _get_question_parts(conf, query_data):
     ]
 
 
+def _get_base_subjects(conf, subject_spec):
+    if subject_spec in conf["feeds"]["subjects"]["catalog"]:
+        return conf["feeds"]["subjects"]["catalog"][subject_spec]
+
+    if not conf["feeds"]["allow_combinations"]:
+        return None
+
+    base_subjects = subject_spec_to_base_subjects(subject_spec)
+    for subject in base_subjects:
+        if subject not in conf["feeds"]["subjects"]["bare"]:
+            return None
+
+    return base_subjects
+
+
 async def answer_query_inner(
-    conf, get_logger, executor, encoders, query_data, subject_spec
+    conf, get_logger, executor, encoders, query_data, subject_spec, client_ip
 ):
     """
     Processes the question on LLM:
@@ -66,12 +84,12 @@ async def answer_query_inner(
     """
     logger = get_logger(__name__)
 
-    if subject_spec not in conf["feeds"]["subjects"]["catalog"]:
+    base_subjects = _get_base_subjects(conf, subject_spec)
+    if base_subjects is None:
         return {
             "ok": False,
             "message": "unknown subject",
         }
-    subject_fs = conf["feeds"]["subjects"]["catalog"][subject_spec]
 
     got_params = False
     err_message = ""
@@ -86,8 +104,31 @@ async def answer_query_inner(
         ]))
         if conf["debugging"]["query_sifting"]:
             logger.debug(
-                f"query:\n{query_text}\n"
+                f"query:\n{query_text}"
             )
+
+        if is_guest and not conf["users"]["with_guest"]:
+            logger.info("attempted guest querying while guests not allowed")
+            return {
+                "ok": False,
+                "message": "guest users are not allowed",
+            }
+
+        if not is_access_ok(conf, client_ip, is_guest, logger.warning):
+            access_prefix = "guest" if is_guest else "user"
+            logger.info(
+                f"{access_prefix} IP address is not allowed (query answering)"
+            )
+            access_error_message = (
+                f"{client_ip} not allowed"
+                if conf["access"][access_prefix + "_show_blocked_ip"]
+                else "not doing the sifting"
+            )
+            return {
+                "ok": False,
+                "message": access_error_message,
+            }
+
     except Exception as exc:
         logger.info(f"wrong query params: {str(exc)}")
         err_message = "could not do the query"
@@ -158,7 +199,7 @@ async def answer_query_inner(
                 conf=conf,
                 encoders=encoders,
                 data_dir=data_dir,
-                base_path=os.path.join(data_dir, subject_fs),
+                base_subjects=base_subjects,
                 query=query_text,
                 get_logger=get_logger,
             )
@@ -182,7 +223,7 @@ async def answer_query_inner(
     try:
         time_asking_start = time.time()
         if conf["mocking"]["to_mock"]:
-            llm_answer = get_mocked_answer(conf, subject_fs, to_explain)
+            llm_answer = get_mocked_answer(conf, subject_spec, to_explain)
             if conf["mocking"]["mocking_delay"] > 0:
                 await asyncio.sleep(conf["mocking"]["mocking_delay"])
         else:
@@ -233,9 +274,8 @@ async def answer_query_inner(
     got_articles = False
     article_list = []
     try:
-        docs_dir = os.path.join(data_dir, subject_fs, DOCUMENTS_SUBDIR)
         article_list = form_response(
-            get_logger, parsed_answer, similar_articles, docs_dir
+            get_logger, parsed_answer, similar_articles, data_dir
         )
         got_articles = True
     except Exception as exc:

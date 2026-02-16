@@ -17,6 +17,38 @@ address = "0.0.0.0"
 # static files are assumed to be served by that proxy;
 behind_proxy = false
 
+[access]
+# access rules based on client IP address:
+# the allow-list is checked first, making contained IP addresses allowed;
+# if an IP address is not contained there,
+# it is disallowed if the default way is not allowing
+# or when the IP address is contained in the block-list;
+# if nothing of that happens, the IP address is allowed;
+# the access lists are reread if the respective files get modified;
+# the rules can differ for regular users vs. guest users:
+# option whether regular users are allowed by default
+user_default_allow = true
+# file with allowed IP-address ranges for regular users;
+# empty path means that no such rules are formed;
+user_allow_list = "../conf/access/users_allow.list"
+# file with blocked IP-address ranges for regular users;
+# empty path means that no such rules are formed;
+user_block_list = "../conf/access/users_block.list"
+# whether the disallowed IP address is stated to regular users
+# when it happens that user IP address is not allowed;
+user_show_blocked_ip = true
+# option whether guest users are allowed by default
+guest_default_allow = true
+# file with allowed IP-address ranges for guest users;
+# empty path means that no such rules are formed;
+guest_allow_list = "../conf/access/guests_allow.list"
+# file with blocked IP-address ranges for guest users;
+# empty path means that no such rules are formed;
+guest_block_list = "../conf/access/guests_block.list"
+# whether the disallowed IP address is stated to guest users
+# when it happens that user IP address is not allowed;
+guest_show_blocked_ip = true
+
 [view]
 # the path at which the arxifter web is served;
 # set it to "" if arxifter is served at the "/" path
@@ -62,6 +94,10 @@ recall_sifts = 20
 # and combined subjects can be specified for feeds too;
 subjects = "subjects.txt"
 default_subject = "cell_biology"
+# to allow users to make queries with subject combinations
+# differing from the listed ones in the "subjects" file;
+# it still has to be with subjects listed there at first;
+allow_combinations = true
 
 [data]
 # where the feeds and the data based on them are stored;

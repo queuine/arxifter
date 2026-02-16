@@ -12,6 +12,7 @@ from .setting import (
     NEW_DIRS_MODE,
     SESSION_CLUE_LEN_BASE,
     MAX_RECALL_SIFTS_COUNT,
+    BIORXIV_SUBJECT_NAMES,
     BIORXIV_FEED_SIZE,
     ENV_HF_MODELS_CACHE_DIR,
     ENV_HF_ASSETS_CACHE_DIR,
@@ -20,7 +21,10 @@ from .setting import (
     HNSWLIB_PATCHED_CHECK,
     HNSWLIB_PATCHED_SEARCH,
 )
-from .utils import subject_spec_to_fs_name
+from .utils import (
+    subject_spec_to_base_subjects,
+    take_access_list,
+)
 from .logging import (
     log_info,
     log_error,
@@ -56,19 +60,19 @@ def _check_conf_path_access(conf_part, is_dir=False, writable=False):
     if is_dir:
         if not os.path.isdir(conf_part["path"]):
             raise OSError(
-                f"configuration: {conf_part['value']}/{conf_part['path']} "
+                f"configuration: {conf_part['value']}\n{conf_part['path']}\n"
                 "has to be a directory"
             )
     else:
         if not os.path.isfile(conf_part["path"]):
             raise OSError(
-                f"configuration: {conf_part['value']}/{conf_part['path']} "
+                f"configuration: {conf_part['value']}\n{conf_part['path']}\n"
                 "has to be a file"
             )
 
     if not os.access(conf_part["path"], os.R_OK):
         raise OSError(
-            f"configuration: {conf_part['value']}/{conf_part['path']} "
+            f"configuration: {conf_part['value']}\n{conf_part['path']}\n"
             "has to be readable"
         )
 
@@ -79,7 +83,7 @@ def _check_conf_path_access(conf_part, is_dir=False, writable=False):
         (not os.access(conf_part["path"], os.W_OK))
     ):
         raise OSError(
-            f"configuration: {conf_part['value']}/{conf_part['path']} "
+            f"configuration: {conf_part['value']}\n{conf_part['path']}\n"
             "has to be writable"
         )
 
@@ -103,7 +107,7 @@ def _read_subject_list(conf_part):
             )
 
     conf_part["catalog"] = {
-        item: subject_spec_to_fs_name(item)
+        item: subject_spec_to_base_subjects(item)
         for item in subject_list if item != ""
     }
     if len(conf_part["catalog"]) == 0:
@@ -111,6 +115,18 @@ def _read_subject_list(conf_part):
             "configuration: subject list (feeds/subjects) has to have "
             f"at least one item\n{str(conf_part["path"])}"
         )
+
+    conf_part["bare"] = {}
+    for _, base_subjects in conf_part["catalog"].items():
+        for subject in base_subjects:
+            if subject not in BIORXIV_SUBJECT_NAMES:
+                raise OSError(
+                    "configuration: subject list (feeds/subjects) contains "
+                    f"an unknown subject: {subject}"
+                )
+            conf_part["bare"][subject] = True
+
+    conf_part["list"] = sorted(list(conf_part["bare"]))
 
 
 def _set_model_dirs(conf_embed):
@@ -217,8 +233,34 @@ def _load_hnswlib(conf_libs):
         raise OSError("cannot check the imported hnswlib") from exc
 
 
+def _load_access_specs(conf_access, with_guest):
+    conf_access["user_allow_list"]["list"] = []
+    conf_access["user_block_list"]["list"] = []
+    conf_access["guest_allow_list"]["list"] = []
+    conf_access["guest_block_list"]["list"] = []
+
+    for spec in ([
+        "user_allow_list",
+        "user_block_list",
+    ] + ([
+        "guest_allow_list",
+        "guest_block_list",
+    ] if with_guest else [])):
+        if conf_access[spec]["value"] != "":
+            _check_conf_path_access(conf_access[spec])
+
+        if conf_access[spec]["value"] != "":
+            if not take_access_list(conf_access[spec], True, log_error):
+                raise OSError("\n".join([
+                    "cannot take IP-address range specifications from:",
+                    conf_access[spec]["path"],
+                ]))
+
+
 def _complete_conf(conf):
     _check_conf_header_origin(conf["server"]["header_origin"])
+
+    _load_access_specs(conf["access"], conf["users"]["with_guest"])
 
     if (conf["session"]["clue_len"] % SESSION_CLUE_LEN_BASE) != 0:
         raise OSError(
@@ -245,7 +287,15 @@ def _complete_conf(conf):
         )
 
     _read_subject_list(conf["feeds"]["subjects"])
-
+    if (
+        conf["feeds"]["default_subject"] not in
+        conf["feeds"]["subjects"]["catalog"]
+    ):
+        raise OSError(
+            "configuration: 'feeds'/'default_subject' "
+            "has to be one of the (combinations of) subjects "
+            "listed at the 'feeds'/'subjects' file"
+        )
     if conf["feeds"]["feed_size"] != BIORXIV_FEED_SIZE:
         raise OSError(
             "configuration: 'feeds'/'feed_size' "
@@ -352,6 +402,12 @@ def _fill_conf(conf, conf_path):
                         )
 
         for part, itemlist in [
+            ["access", [
+                "user_allow_list",
+                "user_block_list",
+                "guest_allow_list",
+                "guest_block_list",
+            ]],
             ["view", ["main_page", "static_dir"]],
             ["notices", ["note_users"]],
             ["feeds", ["subjects"]],
@@ -373,7 +429,14 @@ def _fill_conf(conf, conf_path):
 
         for part, itemlist in [
             ["server", ["behind_proxy"]],
+            ["access", [
+                "user_default_allow",
+                "user_show_blocked_ip",
+                "guest_default_allow",
+                "guest_show_blocked_ip",
+            ]],
             ["notices", ["note_users_html"]],
+            ["feeds", ["allow_combinations"]],
             ["data", ["pruning"]],
             ["users", ["with_guest"]],
             ["mocking", ["to_mock"]],
@@ -500,6 +563,7 @@ def get_conf(conf_env_name):
     """
     conf = {
         "server": {},
+        "access": {},
         "view": {},
         "backlink": {},
         "notices": {},

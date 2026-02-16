@@ -3,12 +3,15 @@ biochemistry
 bioengineering
 bioinformatics
 biophysics
+biophysics+biochemistry
 cancer_biology
 cell_biology
+cell_biology+molecular_biology
 developmental_biology
 ecology
 evolutionary_biology
 genetics
+genetics+developmental_biology
 genomics
 immunology
 microbiology

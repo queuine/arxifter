@@ -43,6 +43,8 @@ ARTICLE_KEY_RANK_VAR = ["art", "num"]
 # non-matching answers
 LLM_MATCHES_KEYS = ["match"]
 LLM_SUGGESTION_KEY = "instead"
+# key parts for title start in LLM answers
+LLM_TITLE_START_KEYS = ["title", "prefix"]
 # repairing the naswers
 JSON_START_REMOVALS = ["```json", "```"]
 JSON_END_REMOVALS = ["```"]
@@ -207,3 +209,31 @@ MOCK_ANSWER_PLAIN = "answer_plain.json"
 MOCK_ANSWER_EXPLAINED = "answer_explained.json"
 MOCK_SUGGESTED_PLAIN = "suggested_plain.json"
 MOCK_SUGGESTED_EXPLAINED = "suggested_explained.json"
+
+BIORXIV_SUBJECT_NAMES = [
+    "animal_behavior_and_cognition",
+    "biochemistry",
+    "bioengineering",
+    "bioinformatics",
+    "biophysics",
+    "cancer_biology",
+    "cell_biology",
+    "developmental_biology",
+    "ecology",
+    "evolutionary_biology",
+    "genetics",
+    "genomics",
+    "immunology",
+    "microbiology",
+    "molecular_biology",
+    "neuroscience",
+    "paleontology",
+    "pathology",
+    "pharmacology_and_toxicology",
+    "physiology",
+    "plant_biology",
+    "scientific_communication_and_education",
+    "synthetic_biology",
+    "systems_biology",
+    "zoology",
+]

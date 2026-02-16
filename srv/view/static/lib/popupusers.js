@@ -27,7 +27,8 @@ class PopupUsers extends React.Component {
       hasAgreed: false,
       isLaborer: false,
       guestId: "",
-      sessionState: this.sessionStates.NO
+      sessionState: this.sessionStates.NO,
+      sessionInfo: null
     };
     this.getRememberId = () => {
       return {
@@ -55,9 +56,10 @@ class PopupUsers extends React.Component {
         guestId: val
       });
     };
-    this.setSessionState = val => {
+    this.setSessionState = (val, info) => {
       this.setState({
-        sessionState: val
+        sessionState: val,
+        sessionInfo: info ?? null
       });
     };
     this.resetSession = () => {
@@ -171,7 +173,7 @@ class PopupUsers extends React.Component {
     })), /*#__PURE__*/React.createElement("div", {
       id: "popup-users-session-notice",
       className: this.state.asGuest ? "popup-users-form-label-inner" : "popup-users-form-label-inner " + "popup-users-form-label-invisible"
-    }, this.state.sessionState == this.sessionStates.NO && "guest session is not set", this.state.sessionState == this.sessionStates.OK && "guest session is set up", this.state.sessionState == this.sessionStates.KO && "guest session set up failed"))), /*#__PURE__*/React.createElement("div", {
+    }, this.state.sessionState == this.sessionStates.NO && "guest session is not set", this.state.sessionState == this.sessionStates.OK && "guest session is set up", this.state.sessionState == this.sessionStates.KO && this.state.sessionInfo === null && "guest session set up failed", this.state.sessionState == this.sessionStates.KO && this.state.sessionInfo !== null && this.state.sessionInfo))), /*#__PURE__*/React.createElement("div", {
       className: "arxifter-popup-bottom"
     }, /*#__PURE__*/React.createElement("button", {
       className: "arxifter-popup-close",

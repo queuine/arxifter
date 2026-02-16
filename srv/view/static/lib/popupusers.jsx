@@ -29,6 +29,7 @@ class PopupUsers extends React.Component {
             isLaborer: false,
             guestId: "",
             sessionState: this.sessionStates.NO,
+            sessionInfo: null
         };
         this.getRememberId = () => {
             return {
@@ -58,9 +59,10 @@ class PopupUsers extends React.Component {
                 guestId: val
             });
         };
-        this.setSessionState = (val) => {
+        this.setSessionState = (val, info) => {
             this.setState({
-                sessionState: val
+                sessionState: val,
+                sessionInfo: info ?? null
             });
         };
         this.resetSession = () => {
@@ -277,8 +279,17 @@ class PopupUsers extends React.Component {
                         {(this.state.sessionState == this.sessionStates.OK)
                             && "guest session is set up"
                         }
-                        {(this.state.sessionState == this.sessionStates.KO)
+                        {(
+                            (this.state.sessionState == this.sessionStates.KO)
+                            && (this.state.sessionInfo === null)
+                        )
                             && "guest session set up failed"
+                        }
+                        {(
+                            (this.state.sessionState == this.sessionStates.KO)
+                            && (this.state.sessionInfo !== null)
+                        )
+                            && this.state.sessionInfo
                         }
                         </div>
                     </>

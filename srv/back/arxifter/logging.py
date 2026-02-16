@@ -79,6 +79,18 @@ def log_info(message):
     )
 
 
+def log_warning(message):
+    """
+    Logs message corresponding to info level.
+    """
+    log_message(
+        message,
+        message_type="WARNING",
+        caller_module=_get_caller_module(2),
+        add_datetime=True,
+    )
+
+
 def log_error(message):
     """
     Logs message corresponding to error level.

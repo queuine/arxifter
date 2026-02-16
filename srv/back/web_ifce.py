@@ -30,6 +30,7 @@ from arxifter.setting import (
 )
 from arxifter.utils import (
     origin_spec_to_parts,
+    is_access_ok,
     mute_hf,
 )
 from arxifter.config import get_conf
@@ -154,14 +155,27 @@ async def provide_guests(request):
     Provides guest status for the arxifter users that are not regular users.
     Guest status is only provided when it is enabled in configuration.
     """
+    client_ip = get_client_ip(request.headers, request.remote)
     logger = get_logging_with_client_ip(
-        app.logger,
-        get_client_ip(request.headers, request.remote),
+        app.logger, client_ip
     )("provide_guests")
     logger.info("guests got requested")
     if not check_client_permissible(request.headers):
         logger.info("guests request not permissible")
         return web.json_response({"available": []})
+    if not conf["users"]["with_guest"]:
+        logger.info("attempt for guest session while guests not allowed")
+        return web.json_response({"available": []})
+    if not is_access_ok(conf, client_ip, True, logger.warning):
+        logger.info("client IP address is not allowed (guests providing)")
+        return web.json_response({
+            "available": [],
+            "reason": (
+                f"{client_ip} not allowed"
+                if conf["access"]["guest_show_blocked_ip"]
+                else "session has not been set up"
+            ),
+        })
 
     # to check provided clues first;
     got_clues = False
@@ -205,7 +219,7 @@ async def provide_guests(request):
     except Exception:
         got_clues = False
 
-    if (not conf["users"]["with_guest"]) or (not got_clues):
+    if not got_clues:
         logger.info("no guests got provided")
         return web.json_response({"available": []})
 
@@ -231,9 +245,9 @@ async def answer_query(request):
     """
     subject_spec = request.match_info["subject_spec"]
 
+    client_ip = get_client_ip(request.headers, request.remote)
     get_logger = get_logging_with_client_ip(
-        app.logger,
-        get_client_ip(request.headers, request.remote),
+        app.logger, client_ip
     )
     logger = get_logger("answer_query")
     logger.info(f"query got asked on {subject_spec}")
@@ -284,6 +298,7 @@ async def answer_query(request):
             presifting_encoders,
             query_data,
             subject_spec,
+            client_ip,
         )
         logger.info(f"state after querying: {res["ok"]}")
 

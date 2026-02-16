@@ -50,6 +50,11 @@ def _get_conf_feeds(conf):
         _camelize("subjects"): list(conf["feeds"]["subjects"]["catalog"]),
         _camelize("default_subject"): conf["feeds"]["default_subject"],
         _camelize("feed_size"): conf["feeds"]["feed_size"],
+        _camelize("allow_combinations"): (
+            conf["feeds"]["subjects"]["list"]
+            if conf["feeds"]["allow_combinations"]
+            else []
+        ),
     }
 
 

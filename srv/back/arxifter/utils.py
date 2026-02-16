@@ -4,6 +4,7 @@ Assorted auxiliary functions.
 """
 
 import os, json, re
+import ipaddress as ip
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -172,14 +173,14 @@ def origin_spec_to_parts(origin_spec):
     return origin_parts
 
 
-def subject_spec_to_fs_name(subject_spec):
+def subject_spec_to_base_subjects(subject_spec):
     """
-    Making filesystem-friendly names from subject specifiers.
-    The main point is that subjects can be combined,
-    and then the respective specifiers contain the + (plus) sign.
-    It is not within the "Portable Filename Character Set" though.
+    Splitting subject specifiers into base subjects.
+    Article storage is currently by base subjects only,
+    and that even for feeds that are based on combinations of subjects.
+    The combination-defining character is the "+" sign.
     """
-    return subject_spec.replace("+", "-")
+    return subject_spec.split("+")
 
 
 def subject_spec_to_feed_url(subject_spec):
@@ -190,6 +191,8 @@ def subject_spec_to_feed_url(subject_spec):
     gets URL encoded or not; by now both ways work.
     Taking it directly with the plus sign for now.
     The encoded way would be with: urllib.parse.quote(subject_spec)
+    Since the current way does the ingest and storing via base subjects only,
+    it does not matter whether the plus sign should (not) get encoded.
     """
     return RSS_FEED_URL_BASE + subject_spec
 
@@ -272,3 +275,131 @@ def mute_hf():
     """
     for env_key in ENV_HF_MUTE:
         os.environ[env_key] = "1"
+
+
+def take_access_list(conf_access_part, require_all_lines, logging_action):
+    """
+    Reads IP ranges from the provided access file and sets it to it.
+    Time of last modification time of the file is read/saved too.
+    """
+    without_errors = True
+    read_list = []
+    last_read_time = 0
+    try:
+        last_read_time = os.path.getmtime(conf_access_part["path"])
+        with open(conf_access_part["path"], encoding="utf8") as fh:
+            for line in fh:
+                line = line.strip()
+                if (
+                    (line == "")
+                    or line.startswith("#")
+                ):
+                    continue
+                try:
+                    access_range = ip.ip_network(line, strict=False)
+                    read_list.append(access_range)
+                except Exception as exc:
+                    logging_action("\n".join([
+                        "cannot read an access specification line:",
+                        conf_access_part["path"],
+                        line,
+                        str(exc),
+                    ]))
+                    if require_all_lines:
+                        without_errors = False
+                        break
+    except Exception as exc:
+        without_errors = False
+        logging_action("\n".join([
+            "cannot read an access specification file:",
+            conf_access_part["path"],
+            str(exc),
+        ]))
+
+    if without_errors:
+        conf_access_part["list"] = read_list
+        conf_access_part["read"] = last_read_time
+
+    return without_errors
+
+
+def is_access_ok(conf, client_ip, is_guest, logging_action):
+    """
+    Checks whether a client is allowed for arxifter actions.
+    The checking is based on the IP address of the client.
+    The used checking lists get reread if the respective files
+    have changed since the last time of their reading.
+    """
+    client_ip_address = ip.ip_address(client_ip)
+    prefix = "guest" if is_guest else "user"
+
+    # first, checking the respective allow-list;
+    # if the client IP address is contained there, it is taken as OK;
+    to_reread_allow_list = False
+    try:
+        if (
+            (conf["access"][prefix + "_allow_list"]["path"] != "")
+            and (
+                os.path.getmtime(
+                    conf["access"][prefix + "_allow_list"]["path"]
+                ) > conf["access"][prefix + "_allow_list"]["read"]
+            )
+        ):
+            to_reread_allow_list = True
+    except Exception as exc:
+        to_reread_allow_list = False
+        logging_action("\n".join([
+            f"cannot check modification time of {prefix}_allow_list file:",
+            conf["access"][prefix + "_allow_list"]["path"],
+            str(exc),
+        ]))
+    if to_reread_allow_list:
+        # rereading the allow-list, as it has changed since its last checking
+        take_access_list(
+            conf["access"][prefix + "_allow_list"], False, logging_action
+        )
+    # doing the actual allow-list checking
+    for ip_range in conf["access"][prefix + "_allow_list"]["list"]:
+        if client_ip_address in ip_range:
+            return True
+
+    # second, if the client IP address is not explicitly allowed,
+    # and if the default way is not allowing, it is taken as KO
+    if not conf["access"][prefix + "_default_allow"]:
+        return False
+
+    # third, if the client IP address is not explicitly allowed,
+    # and if the default way is allowing,
+    # it is necessary to check the respective block-list;
+    # if the client IP address is listed here, it is taken as KO;
+    to_reread_block_list = False
+    try:
+        if (
+            (conf["access"][prefix + "_block_list"]["path"] != "")
+            and (
+                os.path.getmtime(
+                    conf["access"][prefix + "_block_list"]["path"]
+                ) > conf["access"][prefix + "_block_list"]["read"]
+            )
+        ):
+            to_reread_block_list = True
+    except Exception as exc:
+        to_reread_block_list = False
+        logging_action("\n".join([
+            f"cannot check modification time of {prefix}_block_list file:",
+            conf["access"][prefix + "_block_list"]["path"],
+            str(exc),
+        ]))
+    if to_reread_block_list:
+        # rereading the block-list, as it has changed since its last checking
+        take_access_list(
+            conf["access"][prefix + "_block_list"], False, logging_action
+        )
+    # doing the actual block-list checking
+    for ip_range in conf["access"][prefix + "_block_list"]["list"]:
+        if client_ip_address in ip_range:
+            return False
+
+    # fourth, if here, the client IP address was not in the access lists,
+    # and the default way is to allow, thus it is taken as OK;
+    return True
