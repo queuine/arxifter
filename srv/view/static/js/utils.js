@@ -68,6 +68,11 @@ function utilsGetSessionGoneKey() {
     return "expired";
 };
 
+// key for doc subject in article data
+function utilsGetSubjectKey() {
+    return "category";
+};
+
 // item keys commonly used for explanations by LLM
 function utilsGetReasoningKeys() {
     return [

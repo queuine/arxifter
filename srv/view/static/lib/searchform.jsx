@@ -5,7 +5,7 @@
 const React = window.React ?? await import('react');
 const ReactDOM = window.ReactDOM ?? await import('react-dom');
 
-import FormExplained from "arxifter/biorxiv/formexplained.js";
+import FormFeedType from "arxifter/biorxiv/formfeedtype.js";
 import FormQuery from "arxifter/biorxiv/formquery.js";
 import FormSubject from "arxifter/biorxiv/formsubject.js";
 import FormSubmit from "arxifter/biorxiv/formsubmit.js";
@@ -20,12 +20,12 @@ class SearchForm extends React.Component {
         this.getUser = props.getUser;
         this.openPopupUsers = props.openPopupUsers;
         this.appendSearch = props.appendSearch;
-        this.explaining = props.getExplaining();
+        this.feedType = props.getFeedType();
         this.usedSubject = props.getUsedSubject();
         this.setOnSearch = props.setOnSearch;
         this.getAutoFocusTA = props.getAutoFocusTA;
         this.dataNameQuery = "queryContent";
-        this.dataNameExplained = "toExplain";
+        this.dataNameFeedType = "feedType";
         this.dataNameSubject = "selectedBiorxivSubject";
         this.state = {
             submitDisabled: false,
@@ -47,6 +47,21 @@ class SearchForm extends React.Component {
         this.setAutoFocus = (toAutoFocus) => {
             this.formQueryRef.current?.setAutoFocus(toAutoFocus);
         };
+        this.getFeedDesc = (feedType) => {
+            if (feedType == getFabricQuery()["feedTypeCounts"]) {
+                return ""
+                    + "the last "
+                    + `${getFabricFeeds()["feedSize"]} `
+                    + "articles per subject"
+            }
+            if (feedType == getFabricQuery()["feedTypeDays"]) {
+                return ""
+                    + "subject articles of the last "
+                    + `${getFabricFeeds()["depoDepth"]} `
+                    + "days"
+            }
+            return null;
+        };
 
         this.handleSubmit = (e) => {
             e.preventDefault();
@@ -66,11 +81,11 @@ class SearchForm extends React.Component {
             this.submitQuery(this.formRef.current);
         }
 
-        this.prepareParams = (queryText, toExplain, hsVal) => {
+        this.prepareParams = (queryText, feedType, hsVal) => {
             const fabricQuery = getFabricQuery();
             let queryDict = {};
             queryDict[fabricQuery["queryText"]] = queryText;
-            queryDict[fabricQuery["toExplain"]] = toExplain;
+            queryDict[fabricQuery["feedType"]] = feedType;
             queryDict[fabricQuery["userId"]] = this.getUser();
             queryDict[fabricQuery["isGuest"]] = this.isUserGuest();
             queryDict[hsVal] = true;
@@ -83,9 +98,7 @@ class SearchForm extends React.Component {
             const formJson = Object.fromEntries(formData.entries());
             const subjectId = formJson[this.dataNameSubject];
             const queryText = formJson[this.dataNameQuery].trim();
-            const toExplain = (
-                typeof formJson[this.dataNameExplained] !== "undefined"
-            );
+            const feedType = formJson[this.dataNameFeedType];
 
             if (queryText.length == 0) {
                 if (form[this.dataNameQuery].value != "") {
@@ -99,12 +112,13 @@ class SearchForm extends React.Component {
                 return;
             }
             this.setSubmitDisabled(true);
-            this.setOnSearch(subjectId, toExplain);
+            this.setOnSearch(subjectId, feedType);
             this.appendSearch(
                 false,
                 {
                     subject: subjectId,
-                    query: queryText
+                    query: queryText,
+                    feed: this.getFeedDesc(feedType)
                 }
             );
 
@@ -175,7 +189,9 @@ class SearchForm extends React.Component {
                     } else if (iterCount == 0) {
                         hsVal = Math.abs(hsVal - message).toString(10);
                         const queryDict = (
-                            this.prepareParams(queryText, toExplain, hsVal)
+                            this.prepareParams(
+                                queryText, feedType, hsVal
+                            )
                         );
                         websocket.send(JSON.stringify(queryDict));
                     } else if (iterCount == -1) {
@@ -207,9 +223,9 @@ class SearchForm extends React.Component {
                     dataName={this.dataNameQuery}
                     autoFocus={this.getAutoFocusTA()}
                 >
-                    <FormExplained
-                        dataName={this.dataNameExplained}
-                        explaining={this.explaining}
+                    <FormFeedType
+                        dataName={this.dataNameFeedType}
+                        feedType={this.feedType}
                     />
                 </FormQuery>
                 <div id="search-form-bottom">

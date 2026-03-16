@@ -20,13 +20,14 @@ from .setting import (
     HF_ASSETS_SUBDIR,
     HNSWLIB_PATCHED_CHECK,
     HNSWLIB_PATCHED_SEARCH,
+    PRESIFT_LAST_COUNT,
+    PRESIFT_LAST_DAYS,
 )
 from .utils import (
     subject_spec_to_base_subjects,
     take_access_list,
 )
 from .logging import (
-    log_info,
     log_error,
 )
 
@@ -195,28 +196,23 @@ def _check_conf_header_origin(header_origin):
 
 def _load_hnswlib(conf_libs):
     if conf_libs["hnswlib"]["value"] == "":
-        try:
-            conf_libs["hnswlib"]["module"] = (
-                importlib.import_module("hnswlib")
-            )
-        except Exception as exc:
-            raise OSError("cannot import the standard hnswlib") from exc
-    else:
-        _check_conf_path_access(conf_libs["hnswlib"], is_dir=True)
-        found_libraries = list(Path(conf_libs["hnswlib"]["path"]).glob(
-            HNSWLIB_PATCHED_SEARCH
-        ))
-        if len(found_libraries) != 1:
-            raise OSError("cannot find the customized hnswlib")
-        try:
-            spec = importlib.util.spec_from_file_location(
-                "hnswlib", found_libraries[0]
-            )
-            conf_libs["hnswlib"]["module"] = (
-                importlib.util.module_from_spec(spec)
-            )
-        except Exception as exc:
-            raise OSError("cannot import the customized hnswlib") from exc
+        raise OSError("only the patched version of hnswlib is supported")
+
+    _check_conf_path_access(conf_libs["hnswlib"], is_dir=True)
+    found_libraries = list(Path(conf_libs["hnswlib"]["path"]).glob(
+        HNSWLIB_PATCHED_SEARCH
+    ))
+    if len(found_libraries) != 1:
+        raise OSError("cannot find the customized hnswlib")
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "hnswlib", found_libraries[0]
+        )
+        conf_libs["hnswlib"]["module"] = (
+            importlib.util.module_from_spec(spec)
+        )
+    except Exception as exc:
+        raise OSError("cannot import the customized hnswlib") from exc
 
     try:
         conf_libs["hnswlib"]["with_unique_docs"] = (
@@ -225,12 +221,12 @@ def _load_hnswlib(conf_libs):
             else False
         )
         if not conf_libs["hnswlib"]["with_unique_docs"]:
-            log_info(
+            raise OSError(
                 "the imported hnswlib is without support "
                 "for knn search with unique docs"
             )
     except Exception as exc:
-        raise OSError("cannot check the imported hnswlib") from exc
+        raise OSError("check of the imported hnswlib has failed") from exc
 
 
 def _load_access_specs(conf_access, with_guest):
@@ -310,12 +306,6 @@ def _complete_conf(conf):
 
     _load_hnswlib(conf["libs"])
 
-    conf["prompts"]["plain"]["content"] = _read_prompt_template(
-        conf["prompts"]["plain"]["path"]
-    ).replace(
-        "{max_count}",
-        str(conf["sifting"]["answer_max_count"]),
-    )
     conf["prompts"]["explained"]["content"] = _read_prompt_template(
         conf["prompts"]["explained"]["path"]
     ).replace(
@@ -414,7 +404,7 @@ def _fill_conf(conf, conf_path):
             ["data", ["storage_dir"]],
             ["libs", ["hnswlib"]],
             ["embed", ["models_base_dir"]],
-            ["prompts", ["plain", "explained", "common_end"]],
+            ["prompts", ["explained", "common_end"]],
             ["users", ["regular_users", "guest_ids"]],
             ["keys", ["regular_users", "guest_user"]],
             ["mocking", ["answers_dir"]],
@@ -471,7 +461,8 @@ def _fill_conf(conf, conf_path):
 
         for part, itemlist in [
             ["server", ["port"]],
-            ["data", ["kept_days"]],
+            ["data", ["kept_days", "depo_depth", "depo_renew"]],
+            ["embed", ["dense_embed_dim", "static_embed_dim"]],
             ["sifting", ["answer_max_count"]],
             ["users", ["guest_span"]],
         ]:
@@ -543,7 +534,9 @@ def _add_to_conf(conf):
     conf["handshake"]["handshake_start"] = handshake_start
     conf["query"] = {
         "query_text": "query",
-        "to_explain": "explain",
+        "feed_type": "last",
+        "feed_type_days": PRESIFT_LAST_DAYS,
+        "feed_type_counts": PRESIFT_LAST_COUNT,
         "user_id": "user",
         "is_guest": "guest",
     }

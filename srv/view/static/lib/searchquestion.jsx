@@ -31,6 +31,16 @@ function SearchQuestion(props) {
         return label + " ";
     };
 
+    const getFeedDesc = (feedDesc, isActive) => {
+        if (!utilsIsString(feedDesc)) {
+            return null;
+        }
+        if (isActive) {
+            return "sifted through " + feedDesc;
+        }
+        return "sifting through " + feedDesc;
+    };
+
     return (
             <div className="search-question">
                 <div className="search-question-top">
@@ -88,7 +98,12 @@ function SearchQuestion(props) {
                         </button>
                     </div>
                 </div>
-                <div className="search-question-query">
+                <div
+                    className="search-question-query"
+                    title={
+                        getFeedDesc(props.content.feed, props.actionActive)
+                    }
+                >
                     {
                         props.content.query.split(/\r?\n|\r|\n/g)
                         .map((x, i) => (

@@ -121,7 +121,7 @@ function ArxifterPage() {
         // if here, some user id was stored;
         // if the id should be remembered, it gets auto-prolonged;
         // otherwise it gets auto-deleted;
-        const cookieExp = getFabricUi()["retain_user"];
+        const cookieExp = getFabricUi()["retainUser"];
         if (cookieExp <= 0) {
             // it gets deleted and forgotten;
             //utilsSetCookieValue(cookieName, "", cookieExp);
@@ -134,7 +134,7 @@ function ArxifterPage() {
     };
     const setIdRemembering = () => {
         const cookieName = getFabricUi()["userId"];
-        const cookieExp = getFabricUi()["retain_user"];
+        const cookieExp = getFabricUi()["retainUser"];
         if (cookieExp <= 0) {
             utilsDelCookieValue(cookieName);
             return;
@@ -169,16 +169,24 @@ function ArxifterPage() {
         followPopupUsers();
     };
 
-    // local storage: setting for whether LLM should explain its choices
-    const getExplaining = () => {
-        return storageLoadSetupExplaining(
+    // local storage: setting for the type of feeds to be used
+    const getFeedType = () => {
+        const feedType = storageLoadSetupFeedType(
             getStoragePrefix()
         );
+        const knownFeedTypes = [
+            getFabricQuery()["feedTypeCounts"],
+            getFabricQuery()["feedTypeDays"],
+        ];
+        if (knownFeedTypes.includes(feedType)) {
+            return feedType;
+        }
+        return getFabricQuery()["feedTypeCounts"];
     };
-    const setExplaining = (toExplain) => {
-        storageSaveSetupExplaining(
+    const setFeedType = (feedType) => {
+        storageSaveSetupFeedType(
             getStoragePrefix(),
-            toExplain
+            feedType
         );
     };
 
@@ -200,9 +208,9 @@ function ArxifterPage() {
     };
 
     // additional actions to be done when a query is asked
-    const setOnSearch = (subjectId, toExplain) => {
+    const setOnSearch = (subjectId, feedType) => {
         setUsedSubject(subjectId);
-        setExplaining(toExplain);
+        setFeedType(feedType);
     };
 
     // auxiliary function for setting guest sessions
@@ -331,7 +339,7 @@ function ArxifterPage() {
             </dialog>
             <SearchForm
                 ref={searchFormRef}
-                getExplaining={getExplaining}
+                getFeedType={getFeedType}
                 getUsedSubject={getUsedSubject}
                 setOnSearch={setOnSearch}
                 appendSearch={appendSearch}

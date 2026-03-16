@@ -107,14 +107,15 @@ pruning = true
 # how long the feeds should be retained;
 # (this value is used only when pruning is set to true)
 kept_days = 7
+# the depo part of ingested data
+depo_depth = 30
+depo_renew = 2
 
 [libs]
 # directory with a version of hnswlib that has knn searches
 # with support for returning unique docs;
-# empty path means that hnswlib gets loaded from standard
-# locations of python packages;
-hnswlib = ""
-# hnswlib = "../libs/hnswlib/"
+# arxifter uses a patched hnswlib for sentence-wise searches;
+hnswlib = "../libs/hnswlib/"
 
 [embed]
 # models from HF are expected to be stored at "hub" subdirectory
@@ -123,9 +124,11 @@ models_base_dir = "../mods/"
 # model for dense encoders
 # (in the way it is taken by the fastembed library)
 dense_embed_model = "BAAI/bge-base-en-v1.5"
+dense_embed_dim = 768
 # model for static encoders
 # (in the way it is taken by the model2vec library)
 static_embed_model = "NeuML/pubmedbert-base-embeddings-8M"
+static_embed_dim = 256
 
 [sifting]
 # presifting part done by the used dense embedding model
@@ -136,8 +139,7 @@ pick_count_static = 5
 answer_max_count = 5
 
 [prompts]
-# the prompts that are used for LLM querying
-plain = "prompts/plain.txt"
+# the prompt parts that are used for LLM querying
 explained = "prompts/explained.txt"
 common_end = "prompts/ending.txt"
 

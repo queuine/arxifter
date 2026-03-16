@@ -22,12 +22,16 @@ APP_RESPONSE_TIMEOUT = 120
 # command line interface
 APP_NAME_FEED_INGEST = "arxifter-feed-ingest"
 APP_NAME_FEED_PRUNING = "arxifter-feed-pruning"
+APP_NAME_SPAN_INGEST = "arxifter-span-ingest"
 COMMAND_CONFIG = "conf"
 COMMAND_CONFIG_ENV = "env"
 COMMAND_CONFIG_TEST = "test"
 COMMAND_FEEDS = "feeds"
 COMMAND_FEEDS_INGEST = "ingest"
 COMMAND_FEEDS_PRUNE = "prune"
+COMMAND_SPAN = "spans"
+COMMAND_SPAN_INGEST_INCR = "ingest-incr"
+COMMAND_SPAN_INGEST_FULL = "ingest-full"
 COMMAND_TESTS = "test"
 COMMAND_TESTS_FEED_PARSING = "feed-parsing"
 COMMAND_TESTS_FEED_INDEXING = "feed-indexing"
@@ -50,6 +54,9 @@ JSON_START_REMOVALS = ["```json", "```"]
 JSON_END_REMOVALS = ["```"]
 ARTICLE_RECOGNIZING_THRESHOLD = 0.1
 
+# sifting through last counts vs. last days
+PRESIFT_LAST_COUNT = "last_count"
+PRESIFT_LAST_DAYS = "last_days"
 # data storage
 DATA_DIR_PERM = "perm"
 DATA_DIR_CURR = "curr"
@@ -119,8 +126,28 @@ LLM_INFERRING_CUT_NOTICE = "[cut]"
 ATTEMPT_COUNT_FEED = 6
 RSS_FEED_TAKE_SLEEP = 15
 RSS_FEED_INDEX_SLEEP = 10
+RSS_FEED_TAKE_TIMEOUT = 180
 RSS_FEED_URL_BASE = "https://connect.biorxiv.org/biorxiv_xml.php?subject="
 RSS_FEED_FILE_NAME = "feed.rss"
+
+# feed and doc parsing
+DOI_PREFIX = "doi:"
+DOC_DOI_KEY = "doi"
+DOC_LINK_KEY = "link"
+DOC_SUBJECT_KEY = "category"
+DOC_BASE_KEYS = [
+    "title",
+    "authors",
+    "abstract",
+    DOC_DOI_KEY,
+    "date",
+    DOC_LINK_KEY,
+    DOC_SUBJECT_KEY,
+]
+DOC_LINK_START = "https://www.biorxiv.org/content/"
+DOC_VERSION_KEY = "version"
+DOC_TYPE_KEY = "type"
+DOC_OTHER_KEY = "other"
 
 # config for UI and parsing the feeds
 MAX_RECALL_SIFTS_COUNT = 100
@@ -181,6 +208,7 @@ FEED_REPLS_SYMS = {
     "checkmark": "✓",
     "middle dot": "·",
     "micro": "μ",
+    "bigcirc": " o",
 }
 for letter_name, letter_symbol in NAMED_GREEK_LETTERS.items():
     FEED_REPLS_SYMS[letter_name] = letter_symbol
@@ -205,9 +233,7 @@ VIEW_WARNING_ANSWER_WRONG = "an unrecognizable answer from LLM"
 # mocking related
 MOCK_SUBJECTS_ANSWER = ["all", "cell", "test"]
 MOCK_SUBJECTS_SUGGESTED = ["ani", "bio", "gen"]
-MOCK_ANSWER_PLAIN = "answer_plain.json"
 MOCK_ANSWER_EXPLAINED = "answer_explained.json"
-MOCK_SUGGESTED_PLAIN = "suggested_plain.json"
 MOCK_SUGGESTED_EXPLAINED = "suggested_explained.json"
 
 BIORXIV_SUBJECT_NAMES = [

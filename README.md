@@ -4,6 +4,11 @@ arχifter provides LLM-enabled searches on bioRxiv feeds.
 arxifter does the respective sifting via a combination of local indexing
 and a use of *OpenAI* compatible LLM services.
 
+Local indexing uses a modified version of the hnswlib library.
+arχifter sources contain patches that have to be applied to hnswlib.
+By that, installation of arχifter requires either a g++ compiler to be present,
+or to have the patched and compiled hnswlib put in externally.
+
 bioRxiv feeds have to be ingested before they can be used for the sifting.
 An example script for it is `feeder.sh` in the *srv* directory
 that should be set as a cron job.

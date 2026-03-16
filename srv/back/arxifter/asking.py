@@ -4,41 +4,42 @@ Management of processing of user questions on biorxiv feeds,
 with local presifting, followed by a use of a remote LLM.
 """
 
-import time, asyncio, functools
+import time, asyncio
 
 from .setting import (
     SESSION_EXPIRED_KEY,
     MIN_QUERY_LEN,
     MAX_QUERY_LEN,
+    PRESIFT_LAST_COUNT,
+    PRESIFT_LAST_DAYS,
 )
 from .utils import (
-    get_current_data_dir,
     subject_spec_to_base_subjects,
     is_access_ok,
 )
 from .keys import get_user_api_key
-from .loader import presift_docs
 from .mocking import get_mocked_answer
 from .querier import exec_query
 from .answerer import parse_llm_answer
 from .former import form_response
+from .presifter import conduct_presift
 
 
 def _get_question_parts(conf, query_data):
     query_text = None
-    to_explain = None
+    feed_type = None
     user_id = None
     is_guest = None
 
     query_text_key = conf["query"]["query_text"]
-    to_explain_key = conf["query"]["to_explain"]
+    feed_type_key = conf["query"]["feed_type"]
     user_id_key = conf["query"]["user_id"]
     is_guest_key = conf["query"]["is_guest"]
 
     query_text = str(query_data[query_text_key]).strip()
-    to_explain = query_data[to_explain_key]
-    if type(to_explain) is not bool:
-        raise OSError("the explaining flag has to be boolean")
+    feed_type = query_data[feed_type_key]
+    if feed_type not in [PRESIFT_LAST_COUNT, PRESIFT_LAST_DAYS]:
+        raise OSError("unknown feed type")
     user_id = str(query_data[user_id_key]).strip()
     is_guest = query_data[is_guest_key]
     if type(is_guest) is not bool:
@@ -49,7 +50,7 @@ def _get_question_parts(conf, query_data):
             " ".join(line.split()) for line in query_text.splitlines()
             if line.strip() != ""
         ])[:MAX_QUERY_LEN],
-        to_explain,
+        feed_type,
         user_id,
         is_guest,
     ]
@@ -94,13 +95,13 @@ async def answer_query_inner(
     got_params = False
     err_message = ""
     try:
-        query_text, to_explain, user_id, is_guest = (
+        query_text, feed_type, user_id, is_guest = (
             _get_question_parts(conf, query_data)
         )
         got_params = True
         logger.info(" ".join([
             f"query asked by {"guest" if is_guest else "user"}",
-            f"to{"" if to_explain else " not"} get explained",
+            f"on '{feed_type}' feed form",
         ]))
         if conf["debugging"]["query_sifting"]:
             logger.debug(
@@ -173,57 +174,41 @@ async def answer_query_inner(
         }
 
     data_dir = None
-    try:
-        data_dir = get_current_data_dir(conf)
-        if data_dir is None:
-            raise OSError("no embedded feeds are availabble")
-    except Exception as exc:
-        logger.error(f"an error occurred: {str(exc)}")
-        err_message = "could not do the query"
-        data_dir = None
-    if data_dir is None:
-        return {
-            "ok": False,
-            "message": err_message,
-        }
-
     similar_articles = None
-    time_presifting_span = None
+    err_message = None
     try:
         time_presifting_start = time.time()
-        loop = asyncio.get_event_loop()
-        similar_articles = await loop.run_in_executor(
+        presift_res = await conduct_presift(
+            conf,
             executor,
-            functools.partial(
-                presift_docs,
-                conf=conf,
-                encoders=encoders,
-                data_dir=data_dir,
-                base_subjects=base_subjects,
-                query=query_text,
-                get_logger=get_logger,
-            )
+            get_logger,
+            feed_type,
+            encoders,
+            base_subjects,
+            query_text,
         )
         time_presifting_span = time.time() - time_presifting_start
-        if similar_articles is None:
-            raise OSError("could not load the similar articles")
-    except Exception as exc:
-        logger.error(f"an error occurred: {str(exc)}")
-        err_message = "could not do the query"
-        similar_articles = None
 
-    if (
-        (similar_articles is None) and (not conf["mocking"]["to_mock"])
-    ):
+        if presift_res is not None:
+            data_dir = presift_res["data_dir"]
+            similar_articles = presift_res["similar_articles"]
+    except Exception as exc:
+        similar_articles = None
+        logger.error("\n".join([
+            "could not do the presifting",
+            str(exc),
+        ]))
+
+    if similar_articles is None:
         return {
             "ok": False,
-            "message": err_message,
+            "message": "could not sift the query",
         }
 
     try:
         time_asking_start = time.time()
         if conf["mocking"]["to_mock"]:
-            llm_answer = get_mocked_answer(conf, subject_spec, to_explain)
+            llm_answer = get_mocked_answer(conf, subject_spec)
             if conf["mocking"]["mocking_delay"] > 0:
                 await asyncio.sleep(conf["mocking"]["mocking_delay"])
         else:
@@ -231,7 +216,6 @@ async def answer_query_inner(
                 conf,
                 similar_articles,
                 query_text,
-                to_explain,
                 api_key,
                 get_logger,
             )
@@ -245,7 +229,7 @@ async def answer_query_inner(
             logger.debug(llm_answer)
     except Exception as exc:
         logger.error(f"an error occurred: {str(exc)}")
-        err_message = "could not do the query"
+        err_message = "asking LLM the query has failed"
         got_answer = False
 
     if not got_answer:
@@ -275,12 +259,17 @@ async def answer_query_inner(
     article_list = []
     try:
         article_list = form_response(
-            get_logger, parsed_answer, similar_articles, data_dir
+            conf,
+            get_logger,
+            parsed_answer,
+            similar_articles,
+            data_dir,
+            feed_type,
         )
         got_articles = True
     except Exception as exc:
         logger.warning(f"could not read the answer articles: {str(exc)}")
-        err_message = "problems with the query answer"
+        err_message = "problems with the LLM answer"
         got_articles = False
 
     return {

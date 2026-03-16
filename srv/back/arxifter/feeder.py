@@ -4,9 +4,10 @@ Management of taking and indexing biorxiv feeds.
 The indexing is done locally via embeddings.
 """
 
-import os, time
+import os, time, json
 import urllib.request
 import datetime as dt
+from pathlib import Path
 
 from .setting import (
     DATA_DIR_PERM,
@@ -15,14 +16,19 @@ from .setting import (
     ACTIVE_DATA_DIR_MAKING,
     RSS_FEED_TAKE_SLEEP,
     RSS_FEED_INDEX_SLEEP,
+    RSS_FEED_TAKE_TIMEOUT,
     ATTEMPT_COUNT_FEED,
     RSS_FEED_FILE_NAME,
     ENV_CONF_PATH,
+    DOCUMENTS_SUBDIR,
+    HNSWDATA_SUBDIR,
+    VECTORS_SUBDIR,
 )
 from .logging import (
     log_message,
     log_debug,
     log_info,
+    log_warning,
     log_error,
 )
 from .utils import (
@@ -37,6 +43,7 @@ from .config import get_conf
 from .parser import parse_feed_save_docs
 from .encoder import get_encoders
 from .indexer import index_docs
+from .spans.depositer import assure_document_suite_stored
 
 
 def _get_rss_feed_dir(data_dir, subject):
@@ -60,6 +67,39 @@ def _get_data_dir_perm_parts(current_dt):
             str(current_dt.minute).zfill(2)
         ])
     ]
+
+
+def _get_active_dir_docs(data_dir, subject):
+    for one_doc_path in sorted(Path(
+        data_dir,
+        subject,
+        DOCUMENTS_SUBDIR,
+    ).glob("???.json")):
+        yield one_doc_path
+
+
+def _get_doc_embed_split(data_dir, subject, doc_name_stem):
+    split_embed_path = Path(
+        data_dir,
+        subject,
+        HNSWDATA_SUBDIR,
+        doc_name_stem + ".npy",
+    )
+
+    with open(split_embed_path, "rb") as fh:
+        return fh.read()
+
+
+def _get_doc_embed_whole(data_dir, subject, doc_name_stem):
+    whole_embed_path = Path(
+        data_dir,
+        subject,
+        VECTORS_SUBDIR,
+        doc_name_stem + ".npy",
+    )
+
+    with open(whole_embed_path, "rb") as fh:
+        return fh.read()
 
 
 def _prepare_data_dirs(conf, current_dt):
@@ -112,7 +152,9 @@ def _take_feeds(conf, data_dir):
                 log_debug(f"taking {subject}: attempt #{attempt + 1}")
             try:
                 with open(feed_path, "wb") as fh:
-                    with urllib.request.urlopen(feed_url) as response:
+                    with urllib.request.urlopen(
+                        feed_url, timeout=RSS_FEED_TAKE_TIMEOUT
+                    ) as response:
                         fh.write(response.read())
                 got_feed = True
             except Exception:
@@ -130,7 +172,7 @@ def _parse_feeds(conf, data_dir):
     for subject in conf["feeds"]["subjects"]["list"]:
         try:
             if not parse_feed_save_docs(
-                _get_rss_feed_path(data_dir, subject),
+                _get_rss_feed_path(data_dir, subject), subject
             ):
                 got_error = True
                 log_error(f"could not parse a feed: {subject}")
@@ -224,6 +266,47 @@ def _unlink_prev_active_dirs(conf, current_dt):
     return has_removed
 
 
+def _put_feed_to_spans(conf, current_dt, data_dir, encoders):
+    for subject in conf["feeds"]["subjects"]["list"]:
+        for doc_path in _get_active_dir_docs(data_dir, subject):
+            try:
+                with open(doc_path, encoding="utf8") as fh:
+                    doc_data = json.load(fh)
+
+                split_embed_blob = _get_doc_embed_split(
+                    data_dir,
+                    subject,
+                    doc_path.stem,
+                )
+
+                whole_embed_blob = _get_doc_embed_whole(
+                    data_dir,
+                    subject,
+                    doc_path.stem,
+                )
+
+                if not assure_document_suite_stored(
+                    conf,
+                    subject,
+                    current_dt,
+                    doc_data,
+                    split_embed_blob,
+                    whole_embed_blob,
+                    encoders,
+                ):
+                    log_warning("\n".join([
+                        "could not put doc suite to depo",
+                        str(doc_path),
+                    ]))
+            except Exception as exc:
+                log_warning("\n".join([
+                    "cannot put a doc suite to the depo",
+                    str(subject),
+                    str(doc_path),
+                    str(exc),
+                ]))
+
+
 def ingest_feeds():
     """
     Manages the overall process of:
@@ -265,6 +348,10 @@ def ingest_feeds():
         if not _unlink_prev_active_dirs(conf, current_dt):
             # a failure here is not critical
             log_error("cannot remove previous active dirs")
+
+        # it can work even if docs/vecs do not get put to depo
+        _put_feed_to_spans(conf, current_dt, data_dir, encoders)
+
         return True
     except Exception as exc:
         log_error(str(exc))

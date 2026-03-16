@@ -22,8 +22,11 @@ body:has(.arxifter-page-popup[open]) {
     color: #f8fff8 !important;
     background: #008000 !important;
 }
-input[type='checkbox']:checked {
+input[type="checkbox"]:checked {
     accent-color: #808000;
+}
+input[type="radio"] {
+    accent-color: #608000;
 }
 #arxifter-page {
     width: 40em;
@@ -318,15 +321,16 @@ input[type='checkbox']:checked {
     justify-content: space-between;
     margin-bottom: 1px;
 }
-#form-explained-outer {
+#form-set-type-outer {
     display: flex;
     flex-direction: row;
     margin: 0px 0px 0px 0px;
 }
-#form-explained-checkbox {
+.form-set-type-radio {
     vertical-align: middle;
+    margin-left: 10px;
 }
-#form-explained-label {
+.form-set-type-label {
     vertical-align: middle;
     height: 100%;
     margin-left: 1px;

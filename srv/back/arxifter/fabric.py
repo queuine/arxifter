@@ -50,6 +50,7 @@ def _get_conf_feeds(conf):
         _camelize("subjects"): list(conf["feeds"]["subjects"]["catalog"]),
         _camelize("default_subject"): conf["feeds"]["default_subject"],
         _camelize("feed_size"): conf["feeds"]["feed_size"],
+        _camelize("depo_depth"): conf["data"]["depo_depth"],
         _camelize("allow_combinations"): (
             conf["feeds"]["subjects"]["list"]
             if conf["feeds"]["allow_combinations"]
@@ -90,7 +91,9 @@ def _get_conf_handshake(conf):
 def _get_conf_query(conf):
     return {
         _camelize("query_text"): conf["query"]["query_text"],
-        _camelize("to_explain"): conf["query"]["to_explain"],
+        _camelize("feed_type"): conf["query"]["feed_type"],
+        _camelize("feed_type_days"): conf["query"]["feed_type_days"],
+        _camelize("feed_type_counts"): conf["query"]["feed_type_counts"],
         _camelize("user_id"): conf["query"]["user_id"],
         _camelize("is_guest"): conf["query"]["is_guest"],
     }

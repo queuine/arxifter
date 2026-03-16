@@ -113,9 +113,9 @@ function storageGetKeyIsGuest() {
     return "asGuest";
 };
 
-// the key for value of whether results should be explained by LLM
-function storageGetKeyExplaining() {
-    return "toExplain";
+// the key for value of the type of feeds to be used
+function storageGetKeyFeedType() {
+    return "feedType";
 };
 
 // the key for value of the default feed for the queries
@@ -143,7 +143,7 @@ function storageGetDefaultSetupUsers() {
 // take default values of the asking-related setup
 function storageGetDefaultSetupAsking() {
     return {
-        [storageGetKeyExplaining()]: true,
+        [storageGetKeyFeedType()]: "",
         [storageGetKeySiftedFeed()]: "",
     };
 };
@@ -280,9 +280,9 @@ function storageLoadSetupIsGuest(prefix) {
     return storageLoadSetupUsers(prefix)[storageGetKeyIsGuest()];
 };
 
-// take whether LLM should explain its choices
-function storageLoadSetupExplaining(prefix) {
-    return storageLoadSetupAsking(prefix)[storageGetKeyExplaining()];
+// take the type of feeds to be used
+function storageLoadSetupFeedType(prefix) {
+    return storageLoadSetupAsking(prefix)[storageGetKeyFeedType()];
 };
 
 // take the default feed for the sifting
@@ -305,9 +305,9 @@ function storageSaveSetupIsGuest(prefix, value) {
     storageSaveSetupUsers(prefix, storageGetKeyIsGuest(), value)
 };
 
-// save whether LLM should explain its choices
-function storageSaveSetupExplaining(prefix, value) {
-    storageSaveSetupAsking(prefix, storageGetKeyExplaining(), value)
+// save the type of feeds to be used
+function storageSaveSetupFeedType(prefix, value) {
+    storageSaveSetupAsking(prefix, storageGetKeyFeedType(), value)
 };
 
 // save the default feed for the sifting

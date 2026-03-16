@@ -10,14 +10,12 @@ from pathlib import Path
 from .setting import (
     MOCK_SUBJECTS_ANSWER,
     MOCK_SUBJECTS_SUGGESTED,
-    MOCK_ANSWER_PLAIN,
     MOCK_ANSWER_EXPLAINED,
-    MOCK_SUGGESTED_PLAIN,
     MOCK_SUGGESTED_EXPLAINED,
 )
 
 
-def get_mocked_answer(conf, subject, to_explain):
+def get_mocked_answer(conf, subject):
     """
     Provides several forms of mocked LLM answers.
     """
@@ -25,18 +23,12 @@ def get_mocked_answer(conf, subject, to_explain):
 
     for prefix in MOCK_SUBJECTS_ANSWER:
         if subject.startswith(prefix):
-            mock_file_name = (
-                MOCK_ANSWER_EXPLAINED if to_explain
-                else MOCK_ANSWER_PLAIN
-            )
+            mock_file_name = MOCK_ANSWER_EXPLAINED
             break
 
     for prefix in MOCK_SUBJECTS_SUGGESTED:
         if subject.startswith(prefix):
-            mock_file_name = (
-                MOCK_SUGGESTED_EXPLAINED if to_explain
-                else MOCK_SUGGESTED_PLAIN
-            )
+            mock_file_name = MOCK_SUGGESTED_EXPLAINED
             break
 
     if mock_file_name is None:

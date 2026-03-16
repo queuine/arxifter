@@ -25,6 +25,7 @@ def _get_static_encoder(conf):
     )
     return {
         "name": conf["embed"]["static_embed_model"],
+        "dim": conf["embed"]["static_embed_dim"],
         # the "is_query" parameter is not used now, but keeping it,
         # since it may get used at some point;
         "method": lambda text, is_query=False: (
@@ -44,6 +45,7 @@ def _get_dense_encoder(conf):
     )
     return {
         "name": conf["embed"]["dense_embed_model"],
+        "dim": conf["embed"]["dense_embed_dim"],
         "method": lambda text, is_query=False: (
             list(dense_encoder.query_embed([text]))[0]
             if is_query else

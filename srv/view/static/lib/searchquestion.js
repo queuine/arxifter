@@ -22,6 +22,15 @@ function SearchQuestion(props) {
     }
     return label + " ";
   };
+  const getFeedDesc = (feedDesc, isActive) => {
+    if (!utilsIsString(feedDesc)) {
+      return null;
+    }
+    if (isActive) {
+      return "sifted through " + feedDesc;
+    }
+    return "sifting through " + feedDesc;
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "search-question"
   }, /*#__PURE__*/React.createElement("div", {
@@ -46,7 +55,8 @@ function SearchQuestion(props) {
     disabled: !props.actionActive,
     onClick: props.doRemoval
   }, "\uD83D\uDDD9"))), /*#__PURE__*/React.createElement("div", {
-    className: "search-question-query"
+    className: "search-question-query",
+    title: getFeedDesc(props.content.feed, props.actionActive)
   }, props.content.query.split(/\r?\n|\r|\n/g).map((x, i) => /*#__PURE__*/React.createElement(SearchQuestionLine, {
     key: i,
     line: x

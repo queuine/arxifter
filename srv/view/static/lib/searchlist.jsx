@@ -61,6 +61,12 @@ class SearchList extends React.Component {
         this.getSearchList = () => {
             return this.state.searchList;
         };
+        this.getFeedDesc = (feedDesc) => {
+            if (!utilsIsString(feedDesc)) {
+                return "the feed articles";
+            }
+            return feedDesc;
+        }
         this.sortArticleData = (article) => {
             if (!utilsIsDict(article)) {
                 return article;
@@ -153,8 +159,9 @@ class SearchList extends React.Component {
             });
             try {
                 const downloadBlob = new Blob([JSON.stringify({
-                    "subject": downloadItem?.question?.subject,
+                    "subjects": downloadItem?.question?.subject,
                     "query": downloadItem?.question?.query,
+                    "sifted": this.getFeedDesc(downloadItem?.question?.feed),
                     "answer": downloadItem?.answers?.flat().map(
                         item => this.sortArticleData(item)
                     )

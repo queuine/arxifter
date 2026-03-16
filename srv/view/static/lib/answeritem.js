@@ -10,22 +10,44 @@ import AnswerItemAbstract from "arxifter/biorxiv/answeritemabstract.js";
 function AnswerItem(props) {
   const item = props.content;
   const warningKey = utilsGetWarningKey();
-  function getSpareKeys(item) {
+  const subjectKey = utilsGetSubjectKey();
+  const hiddenKeys = ["author_corresponding", "author_corresponding_institution", "license", subjectKey, "jatsxml", "funder", "published", "server"];
+  const getSpareKeys = item => {
     let spareKeys = [];
     const suggestionKey = utilsGetSuggestionKey();
-    const flankKeys = [warningKey, "title", "doi", "link", "date", "author", "authors", "abstract"].concat(utilsGetReasoningKeys());
+    const flankKeys = [warningKey, "title", "doi", "link", "date", "author", "authors", "abstract", "other"].concat(utilsGetReasoningKeys());
     Object.entries(item).map(([key, val]) => {
       if (!utilsIsString(key)) {
         spareKeys.push(JSON.stringify(key, null, 0));
       } else if (flankKeys.indexOf(key.toLowerCase()) < 0) {
-        if (key != suggestionKey) {
-          spareKeys.push(key);
+        if (hiddenKeys.indexOf(key.toLowerCase()) < 0) {
+          if (key != suggestionKey) {
+            spareKeys.push(key);
+          }
         }
       }
     });
     return spareKeys;
-  }
-  ;
+  };
+  const getStringForm = item => {
+    if (utilsIsString(item)) {
+      return item;
+    }
+    return JSON.stringify(item);
+  };
+  const getTitleTitle = docData => {
+    let ttShown = null;
+    if (utilsIsString(docData[subjectKey])) {
+      ttShown = "subject: " + docData[subjectKey].replaceAll("_", " ");
+    }
+    if (utilsIsString(docData["other"])) {
+      if (utilsIsString(ttShown)) {
+        ttShown += ", ";
+      }
+      ttShown += docData["other"];
+    }
+    return ttShown;
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "answer-item"
   }, utilsHasValue(item, warningKey) && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
@@ -37,7 +59,8 @@ function AnswerItem(props) {
   }, /*#__PURE__*/React.createElement("div", {
     className: "answer-item-key"
   }, "title:"), /*#__PURE__*/React.createElement("div", {
-    className: "answer-item-title"
+    className: "answer-item-title",
+    title: getTitleTitle(item)
   }, utilsGetValue(item, "title"))), (utilsHasValue(item, "doi") || utilsHasValue(item, "date")) && /*#__PURE__*/React.createElement(AnswerItemDOI, {
     content: item
   }), (utilsHasValue(item, "authors") || utilsHasValue(item, "author")) && /*#__PURE__*/React.createElement(AnswerItemAuthors, {
@@ -48,7 +71,7 @@ function AnswerItem(props) {
     key: i
   }, /*#__PURE__*/React.createElement("span", {
     className: "answer-item-key"
-  }, x, ":"), /*#__PURE__*/React.createElement("span", null, item[x]))), utilsGetReasoningKeys().map((x, i) => utilsHasValue(item, x) && /*#__PURE__*/React.createElement("div", {
+  }, getStringForm(x), ":"), /*#__PURE__*/React.createElement("span", null, getStringForm(item[x])))), utilsGetReasoningKeys().map((x, i) => utilsHasValue(item, x) && /*#__PURE__*/React.createElement("div", {
     key: i
   }, /*#__PURE__*/React.createElement("span", {
     className: "answer-item-key"

@@ -26,9 +26,23 @@ from .setting import (
     VIEW_WARNING_ANSWER_WRONG,
     ARTICLE_RECOGNIZING_THRESHOLD,
     DOCUMENTS_SUBDIR,
+    PRESIFT_LAST_COUNT,
+    PRESIFT_LAST_DAYS,
+    DOI_PREFIX,
+    DOC_DOI_KEY,
+    DOC_LINK_KEY,
+    DOC_SUBJECT_KEY,
+    DOC_BASE_KEYS,
+    DOC_LINK_START,
+    DOC_VERSION_KEY,
+    DOC_TYPE_KEY,
+    DOC_OTHER_KEY,
 )
 from .utils import (
     get_doc_name,
+)
+from .spans.loader import (
+    get_doc_depo_path,
 )
 
 
@@ -206,13 +220,13 @@ def _back_remap_article_rank(art_rank, similar_articles, article, logger):
         return [None, None, title_key]
 
     return [
-        taken_doc["name"].lstrip("0"),
+        str(taken_doc["name"]).lstrip("0"),
         taken_doc["subject"],
         title_key,
     ]
 
 
-def _get_article_path(art_rank, art_subject, data_dir):
+def _get_article_path(conf, art_rank, art_subject, data_dir, feed_type):
     if art_rank is None:
         return None
 
@@ -224,9 +238,15 @@ def _get_article_path(art_rank, art_subject, data_dir):
     ):
         return None
 
-    art_path = os.path.join(
-        data_dir, art_subject, DOCUMENTS_SUBDIR, get_doc_name(art_rank)
-    )
+    art_path = None
+    if feed_type == PRESIFT_LAST_DAYS:
+        art_path = get_doc_depo_path(conf, art_rank, art_subject, data_dir)
+    if feed_type == PRESIFT_LAST_COUNT:
+        art_path = os.path.join(
+            data_dir, art_subject, DOCUMENTS_SUBDIR, get_doc_name(art_rank)
+        )
+    if art_path is None:
+        return None
 
     if (
         (not os.path.exists(art_path))
@@ -243,10 +263,35 @@ def _get_item_list(answer):
     return [answer]
 
 
-def _take_article_data(logger, article_path, addendum, leave_keys):
+def _take_article_data(
+    logger, article_path, article_subject, addendum, leave_keys
+):
     try:
+        article = {
+            DOC_SUBJECT_KEY: article_subject,
+        }
         with open(article_path, encoding="utf8") as fh:
-            article = json.load(fh)
+            article_bare = json.load(fh)
+            for key in DOC_BASE_KEYS:
+                if key in article_bare:
+                    article[key] = article_bare[key]
+            if (
+                (DOC_LINK_KEY not in article_bare)
+                and (DOC_DOI_KEY in article_bare)
+            ):
+                doi_value = article_bare[DOC_DOI_KEY]
+                if doi_value.startswith(DOI_PREFIX):
+                    doi_value = doi_value[len(DOI_PREFIX):]
+                article[DOC_LINK_KEY] = DOC_LINK_START + doi_value
+            if (
+                (DOC_VERSION_KEY in article_bare)
+                and (DOC_TYPE_KEY in article_bare)
+            ):
+                article[DOC_OTHER_KEY] = ", ".join([
+                    f"version: {article_bare[DOC_VERSION_KEY]}",
+                    f"type: {article_bare[DOC_TYPE_KEY]}"
+                ])
+
         if type(addendum) is dict:
             for key, value in addendum.items():
                 if key not in leave_keys:
@@ -261,7 +306,9 @@ def _take_article_data(logger, article_path, addendum, leave_keys):
     return article
 
 
-def _make_regular_response(logger, answer, similar_articles, data_dir):
+def _make_regular_response(
+    conf, logger, answer, similar_articles, data_dir, feed_type
+):
     response = []
 
     for item in _get_item_list(answer):
@@ -276,7 +323,9 @@ def _make_regular_response(logger, answer, similar_articles, data_dir):
         art_rank, art_subject, title_key = _back_remap_article_rank(
             art_rank, similar_articles, item, logger
         )
-        article_path = _get_article_path(art_rank, art_subject, data_dir)
+        article_path = _get_article_path(
+            conf, art_rank, art_subject, data_dir, feed_type
+        )
         if article_path is None:
             response.append({
                 VIEW_WARNING_KEY: VIEW_WARNING_ANSWER_WRONG,
@@ -286,6 +335,7 @@ def _make_regular_response(logger, answer, similar_articles, data_dir):
         article = _take_article_data(
             logger,
             article_path,
+            art_subject,
             item if with_parts else None,
             [art_rank_key, title_key],
         )
@@ -296,19 +346,28 @@ def _make_regular_response(logger, answer, similar_articles, data_dir):
 
 
 def _make_suggestion_response(
-    logger, suggestion_article, similar_articles, suggestion_key, data_dir
+    conf,
+    logger,
+    suggestion_article,
+    similar_articles,
+    suggestion_key,
+    data_dir,
+    feed_type,
 ):
     art_rank_key, art_rank = _get_article_rank(suggestion_article)
     art_rank, art_subject, title_key = _back_remap_article_rank(
         art_rank, similar_articles, suggestion_article, logger
     )
-    article_path = _get_article_path(art_rank, art_subject, data_dir)
+    article_path = _get_article_path(
+        conf, art_rank, art_subject, data_dir, feed_type
+    )
     if article_path is None:
         return []
 
     article = _take_article_data(
         logger,
         article_path,
+        art_subject,
         suggestion_article,
         [art_rank_key, suggestion_key, title_key],
     )
@@ -318,7 +377,9 @@ def _make_suggestion_response(
     return article if article is not None else []
 
 
-def form_response(get_logger, answer, similar_articles, data_dir):
+def form_response(
+    conf, get_logger, answer, similar_articles, data_dir, feed_type
+):
     """
     Provides response to user via:
     * taking LLM answer,
@@ -334,15 +395,19 @@ def form_response(get_logger, answer, similar_articles, data_dir):
 
     if not is_suggestion:
         return _make_regular_response(
+            conf,
             logger,
             answer,
             similar_articles,
             data_dir,
+            feed_type,
         )
     return _make_suggestion_response(
+        conf,
         logger,
         suggestion_article,
         similar_articles,
         suggestion_key,
         data_dir,
+        feed_type,
     )

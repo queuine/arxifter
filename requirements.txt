@@ -5,7 +5,7 @@ spacy
 model2vec
 onnxruntime
 fastembed
-hnswlib
+#hnswlib
 aiohttp
 openai
 setproctitle

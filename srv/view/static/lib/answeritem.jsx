@@ -12,8 +12,20 @@ import AnswerItemAbstract from "arxifter/biorxiv/answeritemabstract.js";
 function AnswerItem(props) {
     const item = props.content;
     const warningKey = utilsGetWarningKey();
+    const subjectKey = utilsGetSubjectKey();
 
-    function getSpareKeys(item) {
+    const hiddenKeys = [
+        "author_corresponding",
+        "author_corresponding_institution",
+        "license",
+        subjectKey,
+        "jatsxml",
+        "funder",
+        "published",
+        "server"
+    ];
+
+    const getSpareKeys = (item) => {
         let spareKeys = [];
         const suggestionKey = utilsGetSuggestionKey();
         const flankKeys = [
@@ -24,20 +36,44 @@ function AnswerItem(props) {
             "date",
             "author",
             "authors",
-            "abstract"
+            "abstract",
+            "other"
         ].concat(utilsGetReasoningKeys());
 
         Object.entries(item).map(([key, val]) => {
             if (!utilsIsString(key)) {
                 spareKeys.push(JSON.stringify(key, null, 0));
             } else if (flankKeys.indexOf(key.toLowerCase()) < 0) {
-                if (key != suggestionKey) {
-                    spareKeys.push(key);
+                if (hiddenKeys.indexOf(key.toLowerCase()) < 0) {
+                    if (key != suggestionKey) {
+                        spareKeys.push(key);
+                    }
                 }
             }
         });
         return spareKeys;
     };
+
+    const getStringForm = (item) => {
+        if (utilsIsString(item)) {
+            return item;
+        }
+        return JSON.stringify(item);
+    };
+
+    const getTitleTitle = (docData) => {
+        let ttShown = null;
+        if (utilsIsString(docData[subjectKey])) {
+            ttShown = "subject: " + docData[subjectKey].replaceAll("_", " ");
+        }
+        if (utilsIsString(docData["other"])) {
+            if (utilsIsString(ttShown)) {
+                ttShown += ", ";
+            }
+            ttShown += docData["other"];
+        }
+        return ttShown;
+    }
 
     return (
         <div className="answer-item">
@@ -53,7 +89,10 @@ function AnswerItem(props) {
         }
             <div className="answer-item-title-outer">
                 <div className="answer-item-key">title:</div>
-                <div className="answer-item-title">
+                <div
+                    className="answer-item-title"
+                    title={getTitleTitle(item)}
+                >
                     {utilsGetValue(item, "title")}
                 </div>
             </div>
@@ -75,8 +114,8 @@ function AnswerItem(props) {
         {
             getSpareKeys(item).map((x, i) => (
                 <div key={i}>
-                    <span className="answer-item-key">{x}:</span>
-                    <span>{item[x]}</span>
+                    <span className="answer-item-key">{getStringForm(x)}:</span>
+                    <span>{getStringForm(item[x])}</span>
                 </div>
             ))
         }

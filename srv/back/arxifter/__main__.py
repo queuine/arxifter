@@ -24,12 +24,16 @@ from .setting import (
     COMMAND_CONFIG_TEST,
     COMMAND_FEEDS_INGEST,
     COMMAND_FEEDS_PRUNE,
+    COMMAND_SPAN,
+    COMMAND_SPAN_INGEST_INCR,
+    COMMAND_SPAN_INGEST_FULL,
     COMMAND_TESTS,
     COMMAND_TESTS_FEED_PARSING,
     COMMAND_TESTS_FEED_INDEXING,
     ENV_CONF_PATH,
     APP_NAME_FEED_INGEST,
     APP_NAME_FEED_PRUNING,
+    APP_NAME_SPAN_INGEST,
 )
 from .logging import (
     log_message,
@@ -100,6 +104,22 @@ def do_feeds_prune():
     return res
 
 
+def do_span_ingest(full):
+    """
+    Ingests JSON API feeds: via downloading, indexing and saving them.
+    """
+    setproctitle(APP_NAME_SPAN_INGEST)
+    log_info("starting span ingest")
+    try:
+        from .spans.ingester import ingest_span
+        res = ingest_span(full)
+    except Exception as exc:
+        log_error(str(exc))
+        res = False
+    log_info("ending span ingest")
+    return res
+
+
 def do_test_feed_parsing():
     """
     Tests the feed-parsing process
@@ -148,11 +168,15 @@ def do_help():
         f"python -m arxifter {COMMAND_FEEDS} {COMMAND_FEEDS_PRUNE}",
         "    for pruning the past feeds (it is meant to be run by cron)",
         "    it needs to have the configuration env. variable set",
+        f"python -m arxifter {COMMAND_SPAN} "
+        f"{COMMAND_SPAN_INGEST_INCR}|{COMMAND_SPAN_INGEST_FULL}",
+        "    for ingesting biorxiv data (it is meant to be run by cron)",
+        "    it needs to have the configuration env. variable set",
         f"python -m arxifter {COMMAND_TESTS} {COMMAND_TESTS_FEED_PARSING}",
-        "    for testing the feed-parsing process (used during development)"
+        "    for testing the feed-parsing process (used during development)",
         "    it needs to have the configuration env. variable set",
         f"python -m arxifter {COMMAND_TESTS} {COMMAND_TESTS_FEED_INDEXING}",
-        "    for testing the feed-indexing process (used during development)"
+        "    for testing the feed-indexing process (used during development)",
         "    it needs to have the configuration env. variable set",
     ]))
 
@@ -169,6 +193,7 @@ if __name__ == "__main__":
         COMMAND_CONFIG,
         COMMAND_FEEDS,
         COMMAND_TESTS,
+        COMMAND_SPAN,
     ]):
         log_error("unknown command")
         do_help()
@@ -185,6 +210,11 @@ if __name__ == "__main__":
                 sys.exit(0 if do_feeds_ingest() else 2)
             elif sys.argv[2] == COMMAND_FEEDS_PRUNE:
                 sys.exit(0 if do_feeds_prune() else 2)
+        elif sys.argv[1] == COMMAND_SPAN:
+            if sys.argv[2] == COMMAND_SPAN_INGEST_INCR:
+                sys.exit(0 if do_span_ingest(full=False) else 2)
+            if sys.argv[2] == COMMAND_SPAN_INGEST_FULL:
+                sys.exit(0 if do_span_ingest(full=True) else 2)
         elif sys.argv[1] == COMMAND_TESTS:
             if sys.argv[2] == COMMAND_TESTS_FEED_PARSING:
                 sys.exit(0 if do_test_feed_parsing() else 2)

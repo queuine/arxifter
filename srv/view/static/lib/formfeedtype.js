@@ -1,0 +1,51 @@
+/*
+ * Setting for the feed type: per last days or per last count of articles.
+ */
+
+const React = window.React ?? (await import('react'));
+const ReactDOM = window.ReactDOM ?? (await import('react-dom'));
+function FormFeedType(props) {
+  const feedTypeDays = getFabricQuery()["feedTypeDays"];
+  const feedTypeCounts = getFabricQuery()["feedTypeCounts"];
+  const checkName = props.dataName;
+  const [getFeedType, setGetFeedType] = React.useState(props.feedType);
+  const lastArticlesDays = getFabricFeeds()["depoDepth"];
+  const lastArticlesCount = getFabricFeeds()["feedSize"];
+  const labelLastDays = "" + "to sift through subject articles within " + `the last ${lastArticlesDays} days`;
+  const labelLastCount = "" + `to sift through the last ${lastArticlesCount} ` + "articles per subject";
+  const handleFeedTypeSelection = event => {
+    setGetFeedType(event.target.value);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    id: "form-set-type-outer"
+  }, /*#__PURE__*/React.createElement("input", {
+    id: "form-set-type-radio-1",
+    className: "form-set-type-radio",
+    title: labelLastDays,
+    type: "radio",
+    name: checkName,
+    value: feedTypeDays,
+    checked: getFeedType === feedTypeDays,
+    onChange: handleFeedTypeSelection
+  }), /*#__PURE__*/React.createElement("label", {
+    id: "form-set-type-label-1",
+    className: "form-set-type-label",
+    htmlFor: "form-set-type-radio-1",
+    title: labelLastDays
+  }, "the last ", lastArticlesDays, " days"), /*#__PURE__*/React.createElement("input", {
+    id: "form-set-type-radio-2",
+    className: "form-set-type-radio",
+    title: labelLastCount,
+    type: "radio",
+    name: checkName,
+    value: feedTypeCounts,
+    checked: getFeedType === feedTypeCounts,
+    onChange: handleFeedTypeSelection
+  }), /*#__PURE__*/React.createElement("label", {
+    id: "form-set-type-label-2",
+    className: "form-set-type-label",
+    htmlFor: "form-set-type-radio-2",
+    title: labelLastCount
+  }, "per last ", lastArticlesCount, " articles"));
+}
+export { FormFeedType as default };

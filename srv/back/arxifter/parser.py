@@ -13,6 +13,7 @@ from .setting import (
     BIORXIV_FEED_MINIMAL_SIZE,
     BIORXIV_DOI_START,
     BIORXIV_DOI_ENDS,
+    DOC_SUBJECT_KEY,
 )
 from .logging import log_error
 from .utils import (
@@ -132,7 +133,7 @@ def _get_abstract(entry):
     return abstract_val
 
 
-def parse_feed_save_docs(source):
+def parse_feed_save_docs(source, subject=None):
     """
     Parses and saves an already downloaded feed.
     It saves them in a single version that is used for all of:
@@ -216,6 +217,8 @@ def parse_feed_save_docs(source):
         ]:
             if val is not None:
                 art_reg[key] = val
+        if subject is not None:
+            art_reg[DOC_SUBJECT_KEY] = subject
 
         try:
             with open(doc_path_orig, "w", encoding="utf8") as fh:

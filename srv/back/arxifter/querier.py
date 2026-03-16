@@ -4,7 +4,7 @@ The querying of LLMs.
 
 Some inference models have issues with returning the artnum correctly, thus:
 * first, simplifying it to them by making the artnums equals to sequence ranks
-  within the provided presifted set (that has to get remapped then),
+  within the provided presifted set (that has to get remapped eventually),
 * second, asking them to provide starts of article titles too,
   so that it is possible to check whether they provided the artnums correctly;
   (only starts of titles are asked for to not slow it too much).
@@ -58,9 +58,9 @@ def _get_content_text(doc_content, doc_part_key):
     ]))
 
 
-def _get_system_text(conf, similar_articles, argued=True):
+def _get_system_text(conf, similar_articles):
     return (
-        conf["prompts"]["explained" if argued else "plain"]["content"]
+        conf["prompts"]["explained"]["content"]
     ).replace(
         "{context_str}",
         "\n".join([
@@ -85,7 +85,7 @@ def _get_user_text(conf, query):
 
 
 async def exec_query(
-    conf, similar_articles, query, argued, api_key, get_logger
+    conf, similar_articles, query, api_key, get_logger
 ):
     """
     Queries an LLM and returns its answer.
@@ -93,9 +93,7 @@ async def exec_query(
     those components are:
     * presifted feed (as the articles that possibly correspond to the query),
     * user question on the feeds (as a parameter),
-    * prompt to the LLM:
-      * prompts are within the loaded configuration,
-      * and the used prompt is taken according to the "argued" parameter,
+    * prompt to the LLM: prompts are within the loaded configuration,
     * API key.
     """
     logger = get_logger(__name__)
@@ -111,7 +109,7 @@ async def exec_query(
             # b/c splitting it to "instructions" vs. "input"
             # leaves some inferrers ignoring the "instructions";
             input="\n".join([
-                _get_system_text(conf, similar_articles, argued),
+                _get_system_text(conf, similar_articles),
                 _get_user_text(conf, query),
             ]),
             store=False,

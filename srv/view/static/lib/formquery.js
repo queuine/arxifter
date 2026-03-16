@@ -29,7 +29,7 @@ class FormQuery extends React.Component {
         autoFocus: val
       });
     };
-    this.queryLabel = "" + `Query on the last ${this.lastArticlesCount} articles ` + "(per subject) at bioRχiv";
+    this.queryLabel = "" + "Query bioRχiv feeds:";
     this.queryPlaceholder = ["", "Enter a query for LLM for sifting through bioRχiv feeds.", "It can be e.g. 'All on membranes, especially in neurons.'"].join("\n    ");
   }
   render() {
