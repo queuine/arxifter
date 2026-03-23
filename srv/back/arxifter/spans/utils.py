@@ -8,6 +8,7 @@ from pathlib import Path
 
 from ..setting import (
     ATTEMPT_COUNT_DATA_DIR,
+    NEW_DIRS_MODE,
     INFO_FILE_NAME,
     STATIC_EMBED_MODEL_NAME_KEY,
     DENSE_EMBED_MODEL_NAME_KEY,
@@ -117,6 +118,10 @@ def assure_depo_encoding_info(conf, encoders):
         if depo_info_path.exists():
             if not _compare_enc_info(depo_info_path, encoders):
                 return False
+
+        os.makedirs(
+            str(depo_info_path.parents[0]), mode=NEW_DIRS_MODE, exist_ok=True
+        )
 
         with open(depo_info_path, "w", encoding="utf8") as fh:
             json.dump({

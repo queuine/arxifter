@@ -22,6 +22,8 @@ from .setting import (
     HNSWLIB_PATCHED_SEARCH,
     PRESIFT_LAST_COUNT,
     PRESIFT_LAST_DAYS,
+    LLM_API_FORM_RESPONSES,
+    LLM_API_FORM_COMPLETIONS,
 )
 from .utils import (
     subject_spec_to_base_subjects,
@@ -253,6 +255,18 @@ def _load_access_specs(conf_access, with_guest):
                 ]))
 
 
+def _check_llm_api_form(conf_llm):
+    known_api_forms = [
+        LLM_API_FORM_RESPONSES,
+        LLM_API_FORM_COMPLETIONS,
+    ]
+    if conf_llm["asking_form"] not in known_api_forms:
+        raise OSError("\n".join([
+            "configuration: 'llms'/'asking_form' "
+            f"has to be one of {known_api_forms}"
+        ]))
+
+
 def _complete_conf(conf):
     _check_conf_header_origin(conf["server"]["header_origin"])
 
@@ -316,6 +330,8 @@ def _complete_conf(conf):
         conf["prompts"]["common_end"]["path"]
     )
 
+    _check_llm_api_form(conf["llms"])
+
     _set_model_dirs(conf["embed"])
 
     if (
@@ -369,7 +385,7 @@ def _fill_conf(conf, conf_path):
             ["backlink", ["name", "link", "title"]],
             ["feeds", ["default_subject"]],
             ["embed", ["dense_embed_model", "static_embed_model"]],
-            ["llms", ["model_name", "base_url"]],
+            ["llms", ["model_name", "base_url", "asking_form"]],
         ]:
             for item in itemlist:
                 conf[part][item] = str(conf_raw[part][item])

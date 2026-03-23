@@ -20,6 +20,8 @@ from .setting import (
     LLM_INFERRING_ABSTRACT_THRESHOLD,
     LLM_INFERRING_ABSTRACT_CUT_LENGTH,
     LLM_INFERRING_CUT_NOTICE,
+    LLM_API_FORM_RESPONSES,
+    LLM_API_FORM_COMPLETIONS,
 )
 
 
@@ -103,17 +105,28 @@ async def exec_query(
     try:
         # some models tend to explode for thinking too much;
         # it leads to raising an exception that is caught here;
-        response = await querier["client"].responses.create(
-            model=querier["model"],
-            # all the info for the inferrer is put into "input",
-            # b/c splitting it to "instructions" vs. "input"
-            # leaves some inferrers ignoring the "instructions";
-            input="\n".join([
-                _get_system_text(conf, similar_articles),
-                _get_user_text(conf, query),
-            ]),
-            store=False,
-        )
+        if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
+            response = await querier["client"].responses.create(
+                model=querier["model"],
+                # all the info for the inferrer is put into "input",
+                # b/c splitting it to "instructions" vs. "input"
+                # leaves some inferrers ignoring the "instructions";
+                input="\n".join([
+                    _get_system_text(conf, similar_articles),
+                    _get_user_text(conf, query),
+                ]),
+                store=False,
+            )
+        if conf["llms"]["asking_form"] == LLM_API_FORM_COMPLETIONS:
+            # some OpenAI-compatible providers still do not support
+            # the "responses" API: using the "completions" API for them;
+            response = await querier["client"].completions.create(
+                model=querier["model"],
+                prompt="\n".join([
+                    _get_system_text(conf, similar_articles),
+                    _get_user_text(conf, query),
+                ]),
+            )
     except Exception as exc:
         logger.warning("\n".join([
             "an error during waiting for LLM answer",
@@ -127,7 +140,10 @@ async def exec_query(
 
     answer = None
     try:
-        answer = str(response.output_text)
+        if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
+            answer = str(response.output_text)
+        if conf["llms"]["asking_form"] == LLM_API_FORM_COMPLETIONS:
+            answer = str(response.choices[0].text)
     except Exception as exc:
         logger.warning("\n".join([
             "cannot take the output part from the LLM answer",

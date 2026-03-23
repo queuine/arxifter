@@ -122,9 +122,14 @@ hnswlib = "../libs/hnswlib/"
 # of the directory set to the "models_base_dir" key
 models_base_dir = "../mods/"
 # model for dense encoders
-# (in the way it is taken by the fastembed library)
+# (in the way it is taken by the fastembed library);
+# if the "dense_embed_model" is not within the models recognized
+# by the fastembed library, the respective HF directory
+# has to contain info.toml file with model specification;
 dense_embed_model = "BAAI/bge-base-en-v1.5"
 dense_embed_dim = 768
+# dense_embed_model = "local/neuml-pubmedbert-base-embeddings-fp16"
+# dense_embed_dim = 768
 # model for static encoders
 # (in the way it is taken by the model2vec library)
 static_embed_model = "NeuML/pubmedbert-base-embeddings-8M"
@@ -145,13 +150,18 @@ common_end = "prompts/ending.txt"
 
 [llms]
 # LLM inference API end point for OpenAI compatible services;
-# empty base_url means that OpenAI is used;
+# empty "base_url" means that OpenAI is used;
 # so far OpenAI and Fireworks AI have been tested;
+# "model_name" model used by the inferring LLM;
+# "asking_form" is "responses" or "completions"
+# Fireworks AI:
 # base_url = "https://api.fireworks.ai/inference/v1"
-base_url = ""
-# model used by the inferring LLM;
 # model_name = "fireworks/gpt-oss-20b"
+# asking_form = "responses"
+# OpenAI:
+base_url = ""
 model_name = "gpt-5-nano"
+asking_form = "responses"
 
 [users]
 # if a deployment is to be w/o allowing guests,

@@ -37,7 +37,9 @@ function AnswerItem(props) {
             "author",
             "authors",
             "abstract",
-            "other"
+            "other",
+            "version",
+            "type"
         ].concat(utilsGetReasoningKeys());
 
         Object.entries(item).map(([key, val]) => {
@@ -62,17 +64,24 @@ function AnswerItem(props) {
     };
 
     const getTitleTitle = (docData) => {
-        let ttShown = null;
+        let ttShown = [];
         if (utilsIsString(docData[subjectKey])) {
-            ttShown = "subject: " + docData[subjectKey].replaceAll("_", " ");
+            ttShown.push(
+                "subject: " + docData[subjectKey].replaceAll("_", " ")
+            );
         }
-        if (utilsIsString(docData["other"])) {
-            if (utilsIsString(ttShown)) {
-                ttShown += ", ";
+        ["version", "type"].forEach((key, idx) => {
+            if (utilsIsString(docData[key])) {
+                ttShown.push(`${key}: ` + docData[key]);
             }
-            ttShown += docData["other"];
+        })
+        if (utilsIsString(docData["other"])) {
+            ttShown.push(docData["other"]);
         }
-        return ttShown;
+        if (ttShown.length == 0) {
+            return null;
+        }
+        return ttShown.join(", ");
     }
 
     return (

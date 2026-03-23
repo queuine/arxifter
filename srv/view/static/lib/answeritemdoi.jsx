@@ -7,6 +7,16 @@ const ReactDOM = window.ReactDOM ?? await import('react-dom');
 
 function AnswerItemDOI(props) {
     const item = props.content;
+    const doiShown = (doiVal) => {
+        if (!utilsIsString(doiVal)) {
+            return JSON.stringify(doiVal);
+        }
+        const doiPrefix = "doi:";
+        if (doiVal.startsWith(doiPrefix)) {
+            return doiVal;
+        }
+        return doiPrefix + doiVal;
+    }
 
     return (
         <div className="answer-item-doi">
@@ -18,13 +28,13 @@ function AnswerItemDOI(props) {
                 className="answer-item-doi-link"
                 href={utilsGetValue(item, "link")}
             >
-                {utilsGetValue(item, "doi")}
+                {doiShown(utilsGetValue(item, "doi"))}
             </a>
         }
         {
             (utilsHasValue(item, "doi") && !utilsHasValue(item, "link"))
             &&
-            <span>{utilsGetValue(item, "doi")}</span>
+            <span>{doiShown(utilsGetValue(item, "doi"))}</span>
         }
         {
             (utilsHasValue(item, "doi") && utilsHasValue(item, "date"))

@@ -36,7 +36,6 @@ from .setting import (
     DOC_LINK_START,
     DOC_VERSION_KEY,
     DOC_TYPE_KEY,
-    DOC_OTHER_KEY,
 )
 from .utils import (
     get_doc_name,
@@ -283,14 +282,13 @@ def _take_article_data(
                 if doi_value.startswith(DOI_PREFIX):
                     doi_value = doi_value[len(DOI_PREFIX):]
                 article[DOC_LINK_KEY] = DOC_LINK_START + doi_value
-            if (
-                (DOC_VERSION_KEY in article_bare)
-                and (DOC_TYPE_KEY in article_bare)
-            ):
-                article[DOC_OTHER_KEY] = ", ".join([
-                    f"version: {article_bare[DOC_VERSION_KEY]}",
-                    f"type: {article_bare[DOC_TYPE_KEY]}"
-                ])
+
+            doc_version = article_bare.get(DOC_VERSION_KEY, None)
+            if doc_version is not None:
+                article["version"] = doc_version
+            doc_type = article_bare.get(DOC_TYPE_KEY, None)
+            if doc_type is not None:
+                article["type"] = doc_type
 
         if type(addendum) is dict:
             for key, value in addendum.items():

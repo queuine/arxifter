@@ -74,22 +74,38 @@ class SearchList extends React.Component {
             let sortedArticle = {};
             let usedKeys = [];
 
-            const key_suggestion = utilsGetKey(
+            const keySuggestion = utilsGetKey(
                 article, utilsGetSuggestionKey()
             );
-            if (key_suggestion !== null) {
-                sortedArticle["matches"] = !(article[key_suggestion]);
-                usedKeys.push(key_suggestion);
+            if (keySuggestion !== null) {
+                sortedArticle["matches"] = !(article[keySuggestion]);
+                usedKeys.push(keySuggestion);
+            }
+            const keySubject = utilsGetKey(
+                article, utilsGetSubjectKey()
+            );
+            if (keySubject !== null) {
+                sortedArticle["subject"] = (
+                    article[keySubject].replaceAll("_", " ")
+                );
+                usedKeys.push(keySubject);
             }
 
-            const base_keys = [
-                "title", "date", "doi", "link", "authors", "abstract"
+            const baseKeys = [
+                "title",
+                "date",
+                "version",
+                "type",
+                "doi",
+                "link",
+                "authors",
+                "abstract"
             ];
-            base_keys.forEach((key, idx) => {
-                const real_key = utilsGetKey(article, key);
-                if (real_key !== null) {
-                    sortedArticle[key] = article[real_key];
-                    usedKeys.push(real_key);
+            baseKeys.forEach((key, idx) => {
+                const realKey = utilsGetKey(article, key);
+                if (realKey !== null) {
+                    sortedArticle[key] = article[realKey];
+                    usedKeys.push(realKey);
                 }
             })
 
@@ -125,7 +141,7 @@ class SearchList extends React.Component {
                 return `sifting_${rank}.json`;
             }
             const dt = new Date(ts);
-            const ts_formatted = (
+            const tsFormatted = (
                 dt.getFullYear()
                 + "-"
                 + String(dt.getMonth() + 1).padStart(2, 0)
@@ -138,7 +154,7 @@ class SearchList extends React.Component {
                 + "-"
                 + String(dt.getSeconds()).padStart(2, 0)
             );
-            return `sifting_${ts_formatted}.json`;
+            return `sifting_${tsFormatted}.json`;
         };
         this.downloadSearchClassic = (downloadBlob, downloadItem, rank) => {
             const downloadElem = document.createElement("a");

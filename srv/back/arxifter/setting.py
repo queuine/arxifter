@@ -10,6 +10,8 @@ that is read at the "config" module.
 import re
 import unicodedata as ud
 
+import numpy as np
+
 # general use
 ENV_CONF_PATH = "ARXIFTER_CONFIG_PATH"
 NEW_DIRS_MODE = 0o755
@@ -78,6 +80,8 @@ DATA_DIR_TEST_PREV = "prev"
 # questions on LLM
 MIN_QUERY_LEN = 3
 MAX_QUERY_LEN = 1000
+LLM_API_FORM_RESPONSES = "responses"
+LLM_API_FORM_COMPLETIONS = "completions"
 
 # data storage
 ACTIVE_DATA_DIR_MAKING = "%Y_%m%d_%H%M"
@@ -114,6 +118,11 @@ ENV_HF_MODELS_CACHE_DIR = "HF_HUB_CACHE"
 ENV_HF_ASSETS_CACHE_DIR = "HF_ASSETS_CACHE"
 HF_MODELS_SUBDIR = "hub"
 HF_ASSETS_SUBDIR = "assets"
+# local embedding models
+HF_MODEL_DIR_PREFIX = "models--"
+FE_MODEL_SPEC_FILE_NAME = "info.toml"
+FE_DATA_PREC = np.float32
+FE_DATA_CAST = "same_kind"
 
 # sending texts to inferring LLM models
 LLM_INFERRING_TITLE_THRESHOLD = 1024
@@ -129,6 +138,8 @@ RSS_FEED_INDEX_SLEEP = 10
 RSS_FEED_TAKE_TIMEOUT = 180
 RSS_FEED_URL_BASE = "https://connect.biorxiv.org/biorxiv_xml.php?subject="
 RSS_FEED_FILE_NAME = "feed.rss"
+RSS_FEED_LINK_SUFFIX_RSS = "?rss=1"
+RSS_FEED_LINK_SUFFIX_VERSION = re.compile('v(\\d)$')
 
 # feed and doc parsing
 DOI_PREFIX = "doi:"
@@ -147,12 +158,12 @@ DOC_BASE_KEYS = [
 DOC_LINK_START = "https://www.biorxiv.org/content/"
 DOC_VERSION_KEY = "version"
 DOC_TYPE_KEY = "type"
-DOC_OTHER_KEY = "other"
 
 # config for UI and parsing the feeds
 MAX_RECALL_SIFTS_COUNT = 100
 BIORXIV_FEED_SIZE = 30
 BIORXIV_FEED_MINIMAL_SIZE = 20
+BIORXIV_DOI_PREFIX = "doi:"
 BIORXIV_DOI_START = "10.64898"
 BIORXIV_DOI_ENDS = ["v", "?"]
 

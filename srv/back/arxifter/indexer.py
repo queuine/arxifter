@@ -55,6 +55,9 @@ def _make_vec_dirs(base_path):
 def _copy_doc_vectors(
     curr_base_path, curr_doc_name, prev_base_path, prev_doc_name
 ):
+    if prev_base_path is None:
+        return
+
     for subdir in [VECTORS_SUBDIR, HNSWDATA_SUBDIR]:
         prev_vec = Path(
             prev_base_path,
@@ -80,19 +83,21 @@ def _copy_present_vectors(base_path, prev_base_path):
     Even if doc version would get changed, it would hardly alter much
     the embedding vectors, b/c version change does not change the topic.
     """
+    if prev_base_path is None:
+        return
+
     prev_docs = {}
-    if prev_base_path is not None:
-        for prev_doc_path in sorted(Path(
-            prev_base_path,
-            DOCUMENTS_SUBDIR,
-        ).glob("???.json")):
-            try:
-                with open(prev_doc_path, encoding="utf8") as prev_fh:
-                    prev_doi = json.load(prev_fh).get("doi", None)
-                    if prev_doi not in [None, ""]:
-                        prev_docs[prev_doi] = prev_doc_path.stem
-            except Exception:
-                pass
+    for prev_doc_path in sorted(Path(
+        prev_base_path,
+        DOCUMENTS_SUBDIR,
+    ).glob("???.json")):
+        try:
+            with open(prev_doc_path, encoding="utf8") as prev_fh:
+                prev_doi = json.load(prev_fh).get("doi", None)
+                if prev_doi not in [None, ""]:
+                    prev_docs[prev_doi] = prev_doc_path.stem
+        except Exception:
+            pass
 
     for doc_path in sorted(Path(
         base_path,
@@ -279,6 +284,8 @@ def _index_docs_whole(encoder, base_path, prev_base_path):
     if error_occurred:
         return None
 
+    # if copied_vec is True then prev_base_path cannot be None,
+    # as non-present previous feeds imply that no copying occurred;
     prev_embed_dim = (
         _get_embedding_dimension(Path(prev_base_path, VECTORS_SUBDIR))
         if copied_vec else 0

@@ -71,17 +71,22 @@ class SearchList extends React.Component {
       }
       let sortedArticle = {};
       let usedKeys = [];
-      const key_suggestion = utilsGetKey(article, utilsGetSuggestionKey());
-      if (key_suggestion !== null) {
-        sortedArticle["matches"] = !article[key_suggestion];
-        usedKeys.push(key_suggestion);
+      const keySuggestion = utilsGetKey(article, utilsGetSuggestionKey());
+      if (keySuggestion !== null) {
+        sortedArticle["matches"] = !article[keySuggestion];
+        usedKeys.push(keySuggestion);
       }
-      const base_keys = ["title", "date", "doi", "link", "authors", "abstract"];
-      base_keys.forEach((key, idx) => {
-        const real_key = utilsGetKey(article, key);
-        if (real_key !== null) {
-          sortedArticle[key] = article[real_key];
-          usedKeys.push(real_key);
+      const keySubject = utilsGetKey(article, utilsGetSubjectKey());
+      if (keySubject !== null) {
+        sortedArticle["subject"] = article[keySubject].replaceAll("_", " ");
+        usedKeys.push(keySubject);
+      }
+      const baseKeys = ["title", "date", "version", "type", "doi", "link", "authors", "abstract"];
+      baseKeys.forEach((key, idx) => {
+        const realKey = utilsGetKey(article, key);
+        if (realKey !== null) {
+          sortedArticle[key] = article[realKey];
+          usedKeys.push(realKey);
         }
       });
       Object.entries(article).map(([key, val]) => {
@@ -116,8 +121,8 @@ class SearchList extends React.Component {
         return `sifting_${rank}.json`;
       }
       const dt = new Date(ts);
-      const ts_formatted = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, 0) + "-" + String(dt.getDate()).padStart(2, 0) + "_" + String(dt.getHours()).padStart(2, 0) + "-" + String(dt.getMinutes()).padStart(2, 0) + "-" + String(dt.getSeconds()).padStart(2, 0);
-      return `sifting_${ts_formatted}.json`;
+      const tsFormatted = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, 0) + "-" + String(dt.getDate()).padStart(2, 0) + "_" + String(dt.getHours()).padStart(2, 0) + "-" + String(dt.getMinutes()).padStart(2, 0) + "-" + String(dt.getSeconds()).padStart(2, 0);
+      return `sifting_${tsFormatted}.json`;
     };
     this.downloadSearchClassic = (downloadBlob, downloadItem, rank) => {
       const downloadElem = document.createElement("a");

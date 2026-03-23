@@ -27,22 +27,22 @@ function ArxifterPage() {
     if (isAnswer) {
       const fabricAnswer = getFabricAnswer();
       const answerKey = fabricAnswer["llmResponse"];
-      let data_content = null;
+      let dataContent = null;
       try {
         if (typeof payload[answerKey] !== "undefined") {
-          data_content = payload[answerKey];
+          dataContent = payload[answerKey];
         } else {
-          data_content = payload;
+          dataContent = payload;
         }
       } catch (e) {
-        data_content = payload;
+        dataContent = payload;
       }
       try {
         if (payload[utilsGetSessionGoneKey()] === true) {
           popupUsersRef.current?.resetSession();
         }
       } catch (e) {}
-      searchesRef.current?.addSearch(true, data_content);
+      searchesRef.current?.addSearch(true, dataContent);
       searchesRef.current?.saveLastSearches();
     } else {
       searchesRef.current?.addSearch(false, payload);

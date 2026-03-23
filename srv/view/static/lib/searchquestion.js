@@ -16,9 +16,9 @@ function SearchQuestion(props) {
     let label = ` sifting #${rank}`;
     if (ts) {
       const dt = new Date(ts);
-      const dt_day = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, 0) + "-" + String(dt.getDate()).padStart(2, 0);
-      const dt_time = dt.toLocaleTimeString();
-      label += `, queried ${dt_day} at ${dt_time}`;
+      const dtDay = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, 0) + "-" + String(dt.getDate()).padStart(2, 0);
+      const dtTime = dt.toLocaleTimeString();
+      label += `, queried ${dtDay} at ${dtTime}`;
     }
     return label + " ";
   };

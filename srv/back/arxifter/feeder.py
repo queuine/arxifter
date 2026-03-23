@@ -47,10 +47,14 @@ from .spans.depositer import assure_document_suite_stored
 
 
 def _get_rss_feed_dir(data_dir, subject):
+    if data_dir is None:
+        return None
     return os.path.join(data_dir, subject)
 
 
 def _get_rss_feed_path(data_dir, subject):
+    if data_dir is None:
+        return None
     return os.path.join(data_dir, subject, RSS_FEED_FILE_NAME)
 
 
@@ -189,6 +193,9 @@ def _get_prev_feed_dir(conf, encoders):
     # is the current data dir, but that only if the encoders
     # used then and to be used now are the same;
     prev_data_dir = get_current_data_dir(conf)
+    if prev_data_dir is None:
+        log_info("there are no previously ingested feeds present")
+        return None
 
     if not check_encoders_info(
         load_encoders_info(prev_data_dir),

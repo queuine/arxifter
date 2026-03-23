@@ -108,7 +108,10 @@ def test_feed_index():
         for item in sorted(test_dir_curr.glob("*")):
             if not item.is_dir():
                 continue
-            prev_item = Path(test_dir_prev, item.name)
+            prev_item = (
+                Path(test_dir_prev, item.name)
+                if test_dir_prev is not None else None
+            )
             doc_path = item / DOCUMENTS_SUBDIR
             if not doc_path.is_dir():
                 log_debug("\n".join([
@@ -120,7 +123,7 @@ def test_feed_index():
                 conf,
                 encoders,
                 str(item),
-                str(prev_item),
+                str(prev_item) if prev_item is not None else None,
             ):
                 got_error = True
                 log_error("\n".join([

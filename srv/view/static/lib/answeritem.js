@@ -15,7 +15,7 @@ function AnswerItem(props) {
   const getSpareKeys = item => {
     let spareKeys = [];
     const suggestionKey = utilsGetSuggestionKey();
-    const flankKeys = [warningKey, "title", "doi", "link", "date", "author", "authors", "abstract", "other"].concat(utilsGetReasoningKeys());
+    const flankKeys = [warningKey, "title", "doi", "link", "date", "author", "authors", "abstract", "other", "version", "type"].concat(utilsGetReasoningKeys());
     Object.entries(item).map(([key, val]) => {
       if (!utilsIsString(key)) {
         spareKeys.push(JSON.stringify(key, null, 0));
@@ -36,17 +36,22 @@ function AnswerItem(props) {
     return JSON.stringify(item);
   };
   const getTitleTitle = docData => {
-    let ttShown = null;
+    let ttShown = [];
     if (utilsIsString(docData[subjectKey])) {
-      ttShown = "subject: " + docData[subjectKey].replaceAll("_", " ");
+      ttShown.push("subject: " + docData[subjectKey].replaceAll("_", " "));
     }
-    if (utilsIsString(docData["other"])) {
-      if (utilsIsString(ttShown)) {
-        ttShown += ", ";
+    ["version", "type"].forEach((key, idx) => {
+      if (utilsIsString(docData[key])) {
+        ttShown.push(`${key}: ` + docData[key]);
       }
-      ttShown += docData["other"];
+    });
+    if (utilsIsString(docData["other"])) {
+      ttShown.push(docData["other"]);
     }
-    return ttShown;
+    if (ttShown.length == 0) {
+      return null;
+    }
+    return ttShown.join(", ");
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "answer-item"

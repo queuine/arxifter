@@ -11,9 +11,13 @@ from .setting import (
     NEW_DIRS_MODE,
     DOCUMENTS_SUBDIR,
     BIORXIV_FEED_MINIMAL_SIZE,
+    BIORXIV_DOI_PREFIX,
     BIORXIV_DOI_START,
     BIORXIV_DOI_ENDS,
     DOC_SUBJECT_KEY,
+    DOC_VERSION_KEY,
+    RSS_FEED_LINK_SUFFIX_RSS,
+    RSS_FEED_LINK_SUFFIX_VERSION,
 )
 from .logging import log_error
 from .utils import (
@@ -22,7 +26,7 @@ from .utils import (
 )
 
 
-def _get_link(entry):
+def _get_link_version(entry):
     link_val = None
     for key in ["link", "id"]:
         try:
@@ -37,7 +41,19 @@ def _get_link(entry):
     if link_val == "":
         link_val = None
 
-    return link_val
+    if link_val is None:
+        return [None, None]
+
+    if link_val.endswith(RSS_FEED_LINK_SUFFIX_RSS):
+        link_val = link_val[:-len(RSS_FEED_LINK_SUFFIX_RSS)]
+
+    version_val = None
+    v_match = RSS_FEED_LINK_SUFFIX_VERSION.search(link_val)
+    if v_match is not None:
+        version_val = v_match.groups()[0]
+        link_val = link_val[:v_match.start()]
+
+    return [link_val, version_val]
 
 
 def _get_doi(entry, link):
@@ -60,8 +76,12 @@ def _get_doi(entry, link):
             doi_val = doi_val.strip()
         if doi_val == "":
             doi_val = None
-        else:
-            doi_val = "doi:" + doi_val
+
+    if (
+        (doi_val is not None)
+        and (doi_val.startswith(BIORXIV_DOI_PREFIX))
+    ):
+        doi_val = doi_val[len(BIORXIV_DOI_PREFIX):]
 
     return doi_val
 
@@ -186,7 +206,7 @@ def parse_feed_save_docs(source, subject=None):
 
         # "title", "abstract" and "doi" are required here,
         # the other items are optional;
-        art_link = _get_link(entry)
+        art_link, art_version = _get_link_version(entry)
         art_doi = _get_doi(entry, art_link)
         art_date = _get_date(entry)
         art_title = _get_title(entry)
@@ -214,6 +234,7 @@ def parse_feed_save_docs(source, subject=None):
             ["title", art_title],
             ["authors", art_authors],
             ["abstract", art_abstract],
+            [DOC_VERSION_KEY, art_version],
         ]:
             if val is not None:
                 art_reg[key] = val

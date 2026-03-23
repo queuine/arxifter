@@ -114,13 +114,13 @@ function utilsGetKey(item, key) {
         return null;
     }
 
-    const form_capit = key.charAt(0).toUpperCase() + key.slice(1);
-    if (form_capit in item) {
-        return form_capit;
+    const formCapit = key.charAt(0).toUpperCase() + key.slice(1);
+    if (formCapit in item) {
+        return formCapit;
     }
-    const form_upper = key.toUpperCase();
-    if (form_upper in item) {
-        return form_upper;
+    const formUpper = key.toUpperCase();
+    if (formUpper in item) {
+        return formUpper;
     }
     return null;
 };
