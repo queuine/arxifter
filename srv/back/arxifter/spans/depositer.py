@@ -371,6 +371,8 @@ def assure_document_suite_stored(
 ):
     """
     Store a given doc and its both embeddings if they are not already stored.
+    It does not store the data even if they are not stored yet, if their date
+    is too old w.r.t. config, namely comparing it with 'data'/'depo_depth'.
     """
     if not assure_depo_encoding_info(conf, encoders):
         return False

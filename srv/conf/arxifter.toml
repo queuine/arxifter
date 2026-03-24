@@ -105,11 +105,18 @@ storage_dir = "../feed/"
 # whether past stored feed data should be removed;
 pruning = true
 # how long the feeds should be retained;
-# (this value is used only when pruning is set to true)
+# 'kept_days' value is used for the RSS-based 'perm' data
+# and for the 'span' part of the JSON-API data;
+# (this value is used only when 'pruning' is set to true)
 kept_days = 7
 # the depo part of ingested data
+# how many days are used for the 'last-days' siftings;
 depo_depth = 30
+# how many days are taken within each incremental depo-wise data ingest;
 depo_renew = 2
+# how many days are kept within the 'depo' subject-wise subdirectories;
+# (this value is used only when 'pruning' is set to true)
+depo_kept_days = 50
 
 [libs]
 # directory with a version of hnswlib that has knn searches

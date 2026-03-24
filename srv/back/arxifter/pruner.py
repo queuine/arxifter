@@ -17,6 +17,9 @@ from .setting import (
 from .logging import log_error
 from .utils import list_stored_data_dirs
 from .config import get_conf
+from .spans.pruner import (
+    prune_span_depo_feeds
+)
 
 
 def _has_indexed_storage(day_dir):
@@ -99,6 +102,7 @@ def prune_feeds():
             return False
         _remove_old_stored_day_dirs(conf)
         _remove_empty_stored_year_dirs(conf)
+        prune_span_depo_feeds()
         return True
     except Exception as exc:
         log_error(str(exc))

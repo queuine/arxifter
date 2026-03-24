@@ -9,7 +9,7 @@ DATA_DIR_LAST = "last"
 DATA_DIR_DEPO = "depo"
 DATA_DIR_SPAN = "span"
 ACTIVE_SPAN_DIR_LISTING = re.compile('^[\\d]{4}_[\\d]{4}_[\\d]{4}$')
-CURRENT_DATETIME_FORMAT = "%Y_%m%d_%H%M"
+SPAN_DATETIME_FORMAT = "%Y_%m%d_%H%M"
 SPAN_DATETIME_GLOB = ("?" * 4) + "_" + ("?" * 4) + "_" + ("?" * 4)
 
 SUBDIR_DOCS = "docs"
@@ -17,7 +17,10 @@ SUBDIR_EMBED_SPLIT = "embed_split"
 SUBDIR_EMBED_WHOLE = "embed_whole"
 DOI_PREFIX = "doi:"
 
+DEPO_SUBJ_DIR_LISTING = re.compile('^[\\d]{4}_[\\d]{2}_[\\d]{2}$')
 LAST_DATA_DIR_LISTING = re.compile('^[\\d]{4}_[\\d]{4}_[\\d]{4}$')
+SPAN_DATA_DIR_LISTING = LAST_DATA_DIR_LISTING
+SPAN_DATA_DIR_DATE_INFO_LEN = 9
 
 DOC_NAMING_DB = "doc_names.db"
 

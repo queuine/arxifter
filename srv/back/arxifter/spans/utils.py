@@ -20,17 +20,66 @@ from ..logging import (
 from .setting import (
     DATA_DIR_DEPO,
     DATA_DIR_LAST,
+    DATA_DIR_SPAN,
     LAST_DATA_DIR_LISTING,
+    SPAN_DATA_DIR_LISTING,
+    DEPO_SUBJ_DIR_LISTING,
     STATIC_EMBED_MODEL_DIM_KEY,
     DENSE_EMBED_MODEL_DIM_KEY,
+    SPAN_DATETIME_FORMAT,
 )
+
+
+def span_format_current_dt(current_dt):
+    """
+    Provides directory name for 'span'/'last' parts of the depo.
+    """
+    return current_dt.strftime(SPAN_DATETIME_FORMAT)
+
+
+def list_depo_subject_dirs(conf, subject):
+    """
+    Provides date-wise subdirs of the given subject within the depo.
+    """
+    depo_subj_dir = Path(
+        conf["data"]["storage_dir"]["path"],
+        DATA_DIR_DEPO,
+        subject,
+    )
+    if not depo_subj_dir.is_dir():
+        return
+    for item in sorted(depo_subj_dir.glob("*"), reverse=True):
+        if not item.is_dir():
+            continue
+        if re.match(DEPO_SUBJ_DIR_LISTING, item.parts[-1]) is None:
+            continue
+        yield item
+
+
+def list_span_data_dir(conf):
+    """
+    Provides subdirs (containing subjects-wise sub-subdirs with indexes)
+    of the 'span' directory.
+    """
+    span_data_dir = Path(
+        conf["data"]["storage_dir"]["path"],
+        DATA_DIR_SPAN,
+    )
+    if not span_data_dir.is_dir():
+        return
+    for item in sorted(Path(span_data_dir).glob("*"), reverse=True):
+        if not item.is_dir():
+            continue
+        if re.match(SPAN_DATA_DIR_LISTING, item.parts[-1]) is None:
+            continue
+        yield item
 
 
 def list_active_data_dir(conf):
     """
     Provides the symlinks (to spans) within the 'last' directory.
     """
-    data_dir_curr = os.path.join(
+    data_dir_curr = Path(
         conf["data"]["storage_dir"]["path"],
         DATA_DIR_LAST,
     )

@@ -29,7 +29,6 @@ from .setting import (
     DATA_DIR_LAST,
     DATA_DIR_SPAN,
     ACTIVE_SPAN_DIR_LISTING,
-    CURRENT_DATETIME_FORMAT,
     SPAN_DATETIME_GLOB,
     API_FEED_TAKE_SLEEP,
     API_FEED_TAKE_TIMEOUT,
@@ -38,6 +37,7 @@ from .setting import (
 )
 from .utils import (
     set_last_encoding_info,
+    span_format_current_dt,
 )
 from .depositer import (
     assure_document_stored,
@@ -224,15 +224,11 @@ def _take_one_part(collection_info, debugging):
     return collection_parsed["docs"]
 
 
-def _format_current_dt(current_dt):
-    return current_dt.strftime(CURRENT_DATETIME_FORMAT)
-
-
 def _take_span_dir(conf, current_dt, relative=False):
     return Path(
         ".." if relative else conf["data"]["storage_dir"]["path"],
         DATA_DIR_SPAN,
-        _format_current_dt(current_dt),
+        span_format_current_dt(current_dt),
     )
 
 
@@ -257,7 +253,7 @@ def _set_span_as_active(conf, current_dt):
         active_path = Path(
             conf["data"]["storage_dir"]["path"],
             DATA_DIR_LAST,
-            _format_current_dt(current_dt),
+            span_format_current_dt(current_dt),
         )
         os.makedirs(
             str(active_path.parents[0]), mode=NEW_DIRS_MODE, exist_ok=True
@@ -276,7 +272,7 @@ def _set_span_as_active(conf, current_dt):
 
 
 def _remove_prev_active_span_dirs(conf, current_dt):
-    current_dt_formatted = _format_current_dt(current_dt)
+    current_dt_formatted = span_format_current_dt(current_dt)
 
     error_occurred = False
     for one_path in sorted(Path(

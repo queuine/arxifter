@@ -318,6 +318,27 @@ def _complete_conf(conf):
         writable=True,
     )
 
+    if (
+        (conf["data"]["depo_kept_days"] != 0)
+        and (
+            conf["data"]["depo_kept_days"] < (
+                conf["data"]["depo_depth"]
+                + conf["data"]["kept_days"]
+            )
+        )
+    ):
+        raise OSError(" ".join([
+            "configuration: 'data'/'depo_kept_days'",
+            "(" + str(conf["data"]["depo_kept_days"]) + ")",
+            "if nonzero",
+            "cannot be lesser than the sum of 'data'/'depo_depth'",
+            "(" + str(conf["data"]["depo_depth"]) + ")",
+            "and of 'data'/'kept_days'",
+            "(" + str(conf["data"]["kept_days"]) + ")",
+            "with the sum being:",
+            str(conf["data"]["depo_depth"] + conf["data"]["kept_days"]),
+        ]))
+
     _load_hnswlib(conf["libs"])
 
     conf["prompts"]["explained"]["content"] = _read_prompt_template(
@@ -457,6 +478,7 @@ def _fill_conf(conf, conf_path):
 
         for part, itemlist in [
             ["ui", ["retain_user", "recall_sifts"]],
+            ["data", ["depo_kept_days"]],
             ["sifting", [
                 "pick_count_dense",
                 "pick_count_static",
