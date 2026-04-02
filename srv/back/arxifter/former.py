@@ -21,6 +21,7 @@ from .setting import (
     FALSE_VALUES_STR,
     LLM_SUGGESTION_KEY,
     LLM_TITLE_START_KEYS,
+    LLM_TITLE_START_REGS,
     ARTICLE_KEY_RANK_VAR,
     VIEW_WARNING_KEY,
     VIEW_WARNING_ANSWER_WRONG,
@@ -92,6 +93,24 @@ def _get_article_rank(article):
     return [None, None]
 
 
+def _check_is_title_prefix(key, value):
+    for title_test_key in LLM_TITLE_START_KEYS:
+        if title_test_key in str(key).lower():
+            return [
+                key,
+                str(value).strip() if value is not None else None,
+            ]
+
+    for title_test_reg in LLM_TITLE_START_REGS:
+        if title_test_reg.search(str(key).lower()) is not None:
+            return [
+                key,
+                str(value).strip() if value is not None else None,
+            ]
+
+    return [None, None]
+
+
 def _check_rank_within_similar_articles(
     art_rank, similar_articles, article, logger
 ):
@@ -122,12 +141,7 @@ def _check_rank_within_similar_articles(
     try:
         if type(article) is dict:
             for key, value in article.items():
-                for title_test_key in LLM_TITLE_START_KEYS:
-                    if title_test_key in str(key).lower():
-                        title_key = key
-                        if value is not None:
-                            title_prefix = str(value).strip()
-                        break
+                title_key, title_prefix = _check_is_title_prefix(key, value)
                 if title_key is not None:
                     break
     except Exception:

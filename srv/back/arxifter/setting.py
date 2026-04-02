@@ -43,6 +43,10 @@ TRUTH_VALUES_STR = ["1", "y", "yes", "t", "true", "truth", "on", "ok"]
 FALSE_VALUES_STR = ["0", "n", "no", "f", "false", "untrue", "off", "ko"]
 REPLACEMENT_CHAR = "□"
 
+# asking the remote LLM:
+# if it goes that long, it means that either the provider has an issue,
+# or the used LLM is not suitable for working on the task at hand;
+LLM_ASKING_TIMEOUT = 120
 # answers from LLM
 ARTICLE_KEY_RANK = "artnum"
 ARTICLE_KEY_RANK_VAR = ["art", "num"]
@@ -50,7 +54,13 @@ ARTICLE_KEY_RANK_VAR = ["art", "num"]
 LLM_MATCHES_KEYS = ["match"]
 LLM_SUGGESTION_KEY = "instead"
 # key parts for title start in LLM answers
-LLM_TITLE_START_KEYS = ["title", "prefix"]
+LLM_TITLE_START_KEYS = ["title", "prefix", "start"]
+LLM_TITLE_START_REGS = [
+    re.compile("first(.*)two"),
+    re.compile("first(.*)words"),
+    re.compile("two(.*)words"),
+    re.compile("start(.*)words"),
+]
 # repairing the naswers
 JSON_START_REMOVALS = ["```json", "```"]
 JSON_END_REMOVALS = ["```"]
@@ -80,8 +90,9 @@ DATA_DIR_TEST_PREV = "prev"
 # questions on LLM
 MIN_QUERY_LEN = 3
 MAX_QUERY_LEN = 1000
+# not using "completions", b/c their outputs mix text with reasoning
 LLM_API_FORM_RESPONSES = "responses"
-LLM_API_FORM_COMPLETIONS = "completions"
+LLM_API_FORM_CHAT_COMPLETIONS = "chat-completions"
 
 # data storage
 ACTIVE_DATA_DIR_MAKING = "%Y_%m%d_%H%M"

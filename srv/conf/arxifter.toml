@@ -152,22 +152,52 @@ answer_max_count = 5
 
 [prompts]
 # the prompt parts that are used for LLM querying
-explained = "prompts/explained.txt"
-common_end = "prompts/ending.txt"
+main_part = "prompts/main.txt"
+asking_honest = "prompts/honest.txt"
+ending_part = "prompts/ending.txt"
 
 [llms]
+# setting the max count of tokens that the remote LLM can do;
+# it sums the reasoning and the actual-output tokens;
+# (that if the used remote system supports this part of OpenAI API);
+# setting "max_tokens" to 0 means that there is no cap set up;
+max_tokens = 0
 # LLM inference API end point for OpenAI compatible services;
 # empty "base_url" means that OpenAI is used;
-# so far OpenAI and Fireworks AI have been tested;
-# "model_name" model used by the inferring LLM;
-# "asking_form" is "responses" or "completions"
+# * "model_name" model used by the inferring LLM;
+# * "ask_honest" for stressing to admit situations when no article
+#   fits the user's query, as some models hesitate to do it;
+# * "asking_form" is "responses" or "chat-completions"
+
+# NVIDIA:
+# base_url = "https://integrate.api.nvidia.com/v1"
+# model_name = "nvidia/nemotron-3-nano-30b-a3b"
+# ask_honest = false
+# asking_form = "chat-completions"
+
+# Nebius:
+# base_url = "https://api.tokenfactory.nebius.com/v1/"
+# model_name = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+# ask_honest = false
+# asking_form = "chat-completions"
+
+# OpenRouter:
+# base_url = "https://openrouter.ai/api/v1"
+# model_name = "nvidia/nemotron-3-nano-30b-a3b"
+# model_name = "openai/gpt-oss-20b"
+# ask_honest = false
+# asking_form = "chat-completions"
+
 # Fireworks AI:
 # base_url = "https://api.fireworks.ai/inference/v1"
 # model_name = "fireworks/gpt-oss-20b"
+# ask_honest = false
 # asking_form = "responses"
+
 # OpenAI:
 base_url = ""
 model_name = "gpt-5-nano"
+ask_honest = false
 asking_form = "responses"
 
 [users]

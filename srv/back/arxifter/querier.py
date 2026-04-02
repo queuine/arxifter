@@ -9,7 +9,7 @@ Some inference models have issues with returning the artnum correctly, thus:
   so that it is possible to check whether they provided the artnums correctly;
   (only starts of titles are asked for to not slow it too much).
 """
-import json, traceback
+import asyncio, json, traceback
 
 from openai import AsyncOpenAI
 
@@ -20,9 +20,11 @@ from .setting import (
     LLM_INFERRING_ABSTRACT_THRESHOLD,
     LLM_INFERRING_ABSTRACT_CUT_LENGTH,
     LLM_INFERRING_CUT_NOTICE,
+    LLM_ASKING_TIMEOUT,
     LLM_API_FORM_RESPONSES,
-    LLM_API_FORM_COMPLETIONS,
+    LLM_API_FORM_CHAT_COMPLETIONS,
 )
+from .mocking import get_mocked_answer
 
 
 def _get_querier(conf, api_key):
@@ -33,6 +35,7 @@ def _get_querier(conf, api_key):
     return {
         "client": AsyncOpenAI(
             api_key=api_key,
+            timeout=LLM_ASKING_TIMEOUT,
             **additional_params,
         ),
         "model": conf["llms"]["model_name"],
@@ -62,7 +65,7 @@ def _get_content_text(doc_content, doc_part_key):
 
 def _get_system_text(conf, similar_articles):
     return (
-        conf["prompts"]["explained"]["content"]
+        conf["prompts"]["main_part"]["content"]
     ).replace(
         "{context_str}",
         "\n".join([
@@ -74,20 +77,20 @@ def _get_system_text(conf, similar_articles):
             })
             for idx, doc in enumerate(similar_articles)
         ]),
-    )
+    ) + conf["prompts"]["asking_honest"]["content"]
 
 
 def _get_user_text(conf, query):
     return (
-        conf["prompts"]["common_end"]["content"]
+        conf["prompts"]["ending_part"]["content"]
     ).replace(
         "{query_str}",
-        query,
+        json.dumps(query),
     )
 
 
 async def exec_query(
-    conf, similar_articles, query, api_key, get_logger
+    conf, similar_articles, query, api_key, get_logger, subject_spec
 ):
     """
     Queries an LLM and returns its answer.
@@ -97,35 +100,61 @@ async def exec_query(
     * user question on the feeds (as a parameter),
     * prompt to the LLM: prompts are within the loaded configuration,
     * API key.
+    If the system is set to mock the LLM, it returns a mocked LLM answer.
     """
     logger = get_logger(__name__)
     querier = _get_querier(conf, api_key)
 
+    query_prompt = "\n".join([
+        _get_system_text(conf, similar_articles),
+        _get_user_text(conf, query),
+    ])
+
+    if conf["mocking"]["to_mock"]:
+        if conf["debugging"]["query_sifting"]:
+            logger.debug(query_prompt)
+        answer = get_mocked_answer(conf, subject_spec)
+        if conf["mocking"]["mocking_delay"] > 0:
+            await asyncio.sleep(conf["mocking"]["mocking_delay"])
+        return answer
+
     response = None
     try:
+        additional_req_params = {}
         # some models tend to explode for thinking too much;
         # it leads to raising an exception that is caught here;
         if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
+            if conf["llms"]["max_tokens"] != 0:
+                additional_req_params["max_output_tokens"] = (
+                    conf["llms"]["max_tokens"]
+                )
+
             response = await querier["client"].responses.create(
                 model=querier["model"],
                 # all the info for the inferrer is put into "input",
                 # b/c splitting it to "instructions" vs. "input"
                 # leaves some inferrers ignoring the "instructions";
-                input="\n".join([
-                    _get_system_text(conf, similar_articles),
-                    _get_user_text(conf, query),
-                ]),
+                input=query_prompt,
                 store=False,
+                **additional_req_params,
             )
-        if conf["llms"]["asking_form"] == LLM_API_FORM_COMPLETIONS:
+        elif conf["llms"]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
             # some OpenAI-compatible providers still do not support
             # the "responses" API: using the "completions" API for them;
-            response = await querier["client"].completions.create(
+            if conf["llms"]["max_tokens"] != 0:
+                additional_req_params["max_completion_tokens"] = (
+                    conf["llms"]["max_tokens"]
+                )
+
+            response = await querier["client"].chat.completions.create(
                 model=querier["model"],
-                prompt="\n".join([
-                    _get_system_text(conf, similar_articles),
-                    _get_user_text(conf, query),
-                ]),
+                messages=[
+                    {
+                        "role": "user",
+                        "content": query_prompt,
+                    },
+                ],
+                **additional_req_params,
             )
     except Exception as exc:
         logger.warning("\n".join([
@@ -140,10 +169,41 @@ async def exec_query(
 
     answer = None
     try:
+        if conf["debugging"]["query_sifting"]:
+            logger.debug("\n".join(["response:", str(response)]))
+    except Exception:
+        pass
+    try:
+        if conf["debugging"]["query_sifting"]:
+            if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
+                for part in response.output:
+                    if part.type == "reasoning":
+                        for subpart in [
+                            [part.content, "reasoning:"],
+                            [part.summary, "reasoning summary:"],
+                        ]:
+                            if subpart[0] is None:
+                                continue
+                            logger.debug("\n".join([
+                                subpart[1],
+                                *[
+                                    str(item.text) for item in subpart[0]
+                                    if item is not None
+                                ],
+                            ]))
+            elif conf["llms"]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
+                logger.debug("\n".join([
+                    "reasoning:",
+                    str(response.choices[0].message.reasoning)
+                ]))
+    except Exception:
+        logger.debug("could not display the LLM reasoning")
+
+    try:
         if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
             answer = str(response.output_text)
-        if conf["llms"]["asking_form"] == LLM_API_FORM_COMPLETIONS:
-            answer = str(response.choices[0].text)
+        elif conf["llms"]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
+            answer = str(response.choices[0].message.content)
     except Exception as exc:
         logger.warning("\n".join([
             "cannot take the output part from the LLM answer",

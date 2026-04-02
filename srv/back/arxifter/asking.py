@@ -4,7 +4,7 @@ Management of processing of user questions on biorxiv feeds,
 with local presifting, followed by a use of a remote LLM.
 """
 
-import time, asyncio
+import time
 
 from .setting import (
     SESSION_EXPIRED_KEY,
@@ -18,7 +18,6 @@ from .utils import (
     is_access_ok,
 )
 from .keys import get_user_api_key
-from .mocking import get_mocked_answer
 from .querier import exec_query
 from .answerer import parse_llm_answer
 from .former import form_response
@@ -207,20 +206,19 @@ async def answer_query_inner(
 
     try:
         time_asking_start = time.time()
-        if conf["mocking"]["to_mock"]:
-            llm_answer = get_mocked_answer(conf, subject_spec)
-            if conf["mocking"]["mocking_delay"] > 0:
-                await asyncio.sleep(conf["mocking"]["mocking_delay"])
+        llm_answer = await exec_query(
+            conf,
+            similar_articles,
+            query_text,
+            api_key,
+            get_logger,
+            subject_spec,
+        )
+        if llm_answer is not None:
+            got_answer = True
         else:
-            llm_answer = await exec_query(
-                conf,
-                similar_articles,
-                query_text,
-                api_key,
-                get_logger,
-            )
+            err_message = "could not get the answer from LLM"
         time_asking_span = time.time() - time_asking_start
-        got_answer = True
         logger.info(" ".join([
             f"answer in {time_presifting_span:.3f} s (presifting),",
             f"{time_asking_span:.3f} s (llm answering)",

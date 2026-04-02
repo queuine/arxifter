@@ -23,7 +23,7 @@ from .setting import (
     PRESIFT_LAST_COUNT,
     PRESIFT_LAST_DAYS,
     LLM_API_FORM_RESPONSES,
-    LLM_API_FORM_COMPLETIONS,
+    LLM_API_FORM_CHAT_COMPLETIONS,
 )
 from .utils import (
     subject_spec_to_base_subjects,
@@ -258,13 +258,34 @@ def _load_access_specs(conf_access, with_guest):
 def _check_llm_api_form(conf_llm):
     known_api_forms = [
         LLM_API_FORM_RESPONSES,
-        LLM_API_FORM_COMPLETIONS,
+        LLM_API_FORM_CHAT_COMPLETIONS,
     ]
     if conf_llm["asking_form"] not in known_api_forms:
         raise OSError("\n".join([
             "configuration: 'llms'/'asking_form' "
             f"has to be one of {known_api_forms}"
         ]))
+
+
+def _setup_prompt_parts(conf):
+    conf["prompts"]["main_part"]["content"] = _read_prompt_template(
+        conf["prompts"]["main_part"]["path"]
+    ).replace(
+        "{max_count}",
+        str(conf["sifting"]["answer_max_count"]),
+    )
+
+    conf["prompts"]["asking_honest"]["content"] = _read_prompt_template(
+        conf["prompts"]["asking_honest"]["path"]
+    ) if conf["llms"]["ask_honest"] else ""
+    if conf["prompts"]["asking_honest"]["content"] != "":
+        conf["prompts"]["asking_honest"]["content"] = (
+            "\n" + conf["prompts"]["asking_honest"]["content"]
+        )
+
+    conf["prompts"]["ending_part"]["content"] = _read_prompt_template(
+        conf["prompts"]["ending_part"]["path"]
+    )
 
 
 def _complete_conf(conf):
@@ -341,15 +362,7 @@ def _complete_conf(conf):
 
     _load_hnswlib(conf["libs"])
 
-    conf["prompts"]["explained"]["content"] = _read_prompt_template(
-        conf["prompts"]["explained"]["path"]
-    ).replace(
-        "{max_count}",
-        str(conf["sifting"]["answer_max_count"]),
-    )
-    conf["prompts"]["common_end"]["content"] = _read_prompt_template(
-        conf["prompts"]["common_end"]["path"]
-    )
+    _setup_prompt_parts(conf)
 
     _check_llm_api_form(conf["llms"])
 
@@ -441,7 +454,7 @@ def _fill_conf(conf, conf_path):
             ["data", ["storage_dir"]],
             ["libs", ["hnswlib"]],
             ["embed", ["models_base_dir"]],
-            ["prompts", ["explained", "common_end"]],
+            ["prompts", ["main_part", "asking_honest", "ending_part"]],
             ["users", ["regular_users", "guest_ids"]],
             ["keys", ["regular_users", "guest_user"]],
             ["mocking", ["answers_dir"]],
@@ -465,6 +478,7 @@ def _fill_conf(conf, conf_path):
             ["notices", ["note_users_html"]],
             ["feeds", ["allow_combinations"]],
             ["data", ["pruning"]],
+            ["llms", ["ask_honest"]],
             ["users", ["with_guest"]],
             ["mocking", ["to_mock"]],
             ["debugging", ["query_sifting", "feed_ingest"]],
@@ -484,6 +498,7 @@ def _fill_conf(conf, conf_path):
                 "pick_count_static",
                 "answer_max_count",
             ]],
+            ["llms", ["max_tokens"]],
             ["mocking", ["mocking_delay"]],
         ]:
             for item in itemlist:

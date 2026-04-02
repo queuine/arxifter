@@ -64,6 +64,19 @@ The current arχifter implementation uses *OpenAI* compatible LLM services.
 Since many independent LLM cloud providers have such an interface available,
 it makes arχifter open to many LLM systems and models.
 
+#### suitable LLMs for the sifting
+
+It is advisable to use the weakest LLMs that are still capable to do
+the respective work, so that the amount of consumed resources is as small as possible.
+Regarding the counts of parameters of LLMs, the point of interest here is
+the middle range of them, cca 20b to 30b of LLM parameters.
+
+This middle range of LLMs provides some models that work reasonably well
+as the arχifter sifters.
+Besides the nano versions of GPT-5 series from OpenAI services can do the work here,
+the following open-source LLMs have been found to be sufficient too:
+OpenAI's GPT-OSS-20b and NVIDIA's Nemotron-3-Nano-30B-A3B.
+
 #### configs and scripts
 
 bioRxiv feeds have to be ingested before they can be used for the sifting.

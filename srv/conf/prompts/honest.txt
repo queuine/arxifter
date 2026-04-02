@@ -1,0 +1,5 @@
+Plese be honest, and do not hesitate to state that the taken article \
+does not match the query (i.e. add the "matches":false field to it), \
+when it happens.
+Recall that such a non-matching article can be taken just one, \
+and that when there are no well-matching articles there at all.
