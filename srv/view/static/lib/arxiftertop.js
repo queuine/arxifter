@@ -12,12 +12,20 @@ function ArxifterTop(props) {
   const fabricBacklink = getFabricBacklink();
   return /*#__PURE__*/React.createElement("div", {
     id: "arxifter-top"
+  }, /*#__PURE__*/React.createElement("div", {
+    id: "arxifter-top-links"
   }, /*#__PURE__*/React.createElement("a", {
     id: "arxifter-top-backlink",
     href: fabricBacklink["link"],
     title: fabricBacklink["title"],
     target: "_blank"
-  }, fabricBacklink["name"]), /*#__PURE__*/React.createElement("div", {
+  }, fabricBacklink["name"], ":"), /*#__PURE__*/React.createElement("div", {
+    title: "via ar\u03C7ifter sifting through bioR\u03C7iv feeds"
+  }, "check what's new on", ' ' /* to keep a white space in there */, /*#__PURE__*/React.createElement("a", {
+    id: "arxifter-top-biorxiv-link",
+    href: "https://www.biorxiv.org/",
+    target: "_blank"
+  }, "bioR\u03C7iv"))), /*#__PURE__*/React.createElement("div", {
     id: "arxifter-top-buttons-outer"
   }, /*#__PURE__*/React.createElement("button", {
     id: "arxifter-top-button-setting",

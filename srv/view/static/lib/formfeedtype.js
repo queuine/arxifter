@@ -16,8 +16,8 @@ function FormFeedType(props) {
   const handleFeedTypeSelection = event => {
     setGetFeedType(event.target.value);
   };
-  return /*#__PURE__*/React.createElement("div", {
-    id: "form-set-type-outer"
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "form-set-type-outer"
   }, /*#__PURE__*/React.createElement("input", {
     id: "form-set-type-radio-1",
     className: "form-set-type-radio",
@@ -32,7 +32,9 @@ function FormFeedType(props) {
     className: "form-set-type-label",
     htmlFor: "form-set-type-radio-1",
     title: labelLastDays
-  }, "the last ", lastArticlesDays, " days"), /*#__PURE__*/React.createElement("input", {
+  }, "articles within the last ", lastArticlesDays, " days")), /*#__PURE__*/React.createElement("div", {
+    className: "form-set-type-outer"
+  }, /*#__PURE__*/React.createElement("input", {
     id: "form-set-type-radio-2",
     className: "form-set-type-radio",
     title: labelLastCount,
@@ -46,6 +48,6 @@ function FormFeedType(props) {
     className: "form-set-type-label",
     htmlFor: "form-set-type-radio-2",
     title: labelLastCount
-  }, "per last ", lastArticlesCount, " articles"));
+  }, "the last ", lastArticlesCount, " articles per subject")));
 }
 export { FormFeedType as default };

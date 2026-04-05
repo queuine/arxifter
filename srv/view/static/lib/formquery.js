@@ -29,19 +29,21 @@ class FormQuery extends React.Component {
         autoFocus: val
       });
     };
-    this.queryLabel = "" + "Query bioRχiv feeds:";
-    this.queryPlaceholder = ["", "Enter a query for LLM for sifting through bioRχiv feeds.", "It can be e.g. 'All on membranes, especially in neurons.'"].join("\n    ");
+    this.queryLabel = "" + "Query";
+    this.queryPlaceholder = ["", "Enter a query that will get sifted through bioRχiv feeds.", "It can be e.g. 'On structuring and dynamics of membranes.'"].join("\n    ");
   }
   render() {
     return /*#__PURE__*/React.createElement("div", {
       id: "form-query-cover"
     }, /*#__PURE__*/React.createElement("div", {
-      id: "form-query-roof"
+      id: "form-query-upper"
     }, /*#__PURE__*/React.createElement("label", {
       id: "form-query-title",
-      title: "LLM presents articles from the selected bioRχiv" + " feed according to the query entered below",
+      title: "Query to sift through chosen bioRχiv subjects",
       htmlFor: this.textareaIdName
-    }, this.queryLabel), this.children), /*#__PURE__*/React.createElement("textarea", {
+    }, this.queryLabel), /*#__PURE__*/React.createElement("div", {
+      id: "form-query-choices"
+    }, this.children)), /*#__PURE__*/React.createElement("textarea", {
       ref: this.textareaRef,
       id: this.textareaIdName,
       name: this.queryContentName,

@@ -14,14 +14,31 @@ function ArxifterTop(props) {
 
     return (
         <div id="arxifter-top">
-            <a
-                id="arxifter-top-backlink"
-                href={fabricBacklink["link"]}
-                title={fabricBacklink["title"]}
-                target="_blank"
+            <div
+                id="arxifter-top-links"
             >
-                {fabricBacklink["name"]}
-            </a>
+                <a
+                    id="arxifter-top-backlink"
+                    href={fabricBacklink["link"]}
+                    title={fabricBacklink["title"]}
+                    target="_blank"
+                >
+                    {fabricBacklink["name"]}:
+                </a>
+                <div
+                    title="via arχifter sifting through bioRχiv feeds"
+                >
+                    check what's new on
+                    {' ' /* to keep a white space in there */}
+                    <a
+                        id="arxifter-top-biorxiv-link"
+                        href="https://www.biorxiv.org/"
+                        target="_blank"
+                    >
+                        bioRχiv
+                    </a>
+                </div>
+            </div>
             <div id="arxifter-top-buttons-outer">
                 <button
                     id="arxifter-top-button-setting"

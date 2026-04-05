@@ -25,46 +25,52 @@ function FormFeedType(props) {
     }
 
     return (
-        <div
-            id="form-set-type-outer"
-        >
-            <input
-                id="form-set-type-radio-1"
-                className="form-set-type-radio"
-                title={labelLastDays}
-                type="radio"
-                name={checkName}
-                value={feedTypeDays}
-                checked={getFeedType === feedTypeDays}
-                onChange={handleFeedTypeSelection}
-            />
-            <label
-                id="form-set-type-label-1"
-                className="form-set-type-label"
-                htmlFor="form-set-type-radio-1"
-                title={labelLastDays}
+        <>
+            <div
+                className="form-set-type-outer"
             >
-                the last {lastArticlesDays} days
-            </label>
-            <input
-                id="form-set-type-radio-2"
-                className="form-set-type-radio"
-                title={labelLastCount}
-                type="radio"
-                name={checkName}
-                value={feedTypeCounts}
-                checked={getFeedType === feedTypeCounts}
-                onChange={handleFeedTypeSelection}
-            />
-            <label
-                id="form-set-type-label-2"
-                className="form-set-type-label"
-                htmlFor="form-set-type-radio-2"
-                title={labelLastCount}
+                <input
+                    id="form-set-type-radio-1"
+                    className="form-set-type-radio"
+                    title={labelLastDays}
+                    type="radio"
+                    name={checkName}
+                    value={feedTypeDays}
+                    checked={getFeedType === feedTypeDays}
+                    onChange={handleFeedTypeSelection}
+                />
+                <label
+                    id="form-set-type-label-1"
+                    className="form-set-type-label"
+                    htmlFor="form-set-type-radio-1"
+                    title={labelLastDays}
+                >
+                    articles within the last {lastArticlesDays} days
+                </label>
+            </div>
+            <div
+                className="form-set-type-outer"
             >
-                per last {lastArticlesCount} articles
-            </label>
-        </div>
+                <input
+                    id="form-set-type-radio-2"
+                    className="form-set-type-radio"
+                    title={labelLastCount}
+                    type="radio"
+                    name={checkName}
+                    value={feedTypeCounts}
+                    checked={getFeedType === feedTypeCounts}
+                    onChange={handleFeedTypeSelection}
+                />
+                <label
+                    id="form-set-type-label-2"
+                    className="form-set-type-label"
+                    htmlFor="form-set-type-radio-2"
+                    title={labelLastCount}
+                >
+                    the last {lastArticlesCount} articles per subject
+                </label>
+            </div>
+        </>
     );
 }
 

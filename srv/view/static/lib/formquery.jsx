@@ -32,30 +32,33 @@ class FormQuery extends React.Component {
         };
 
         this.queryLabel = ""
-            + "Query bioRχiv feeds:"
+            + "Query"
 
         this.queryPlaceholder = [
             "",
-            "Enter a query for LLM for sifting through bioRχiv feeds.",
-            "It can be e.g. 'All on membranes, especially in neurons.'",
+            "Enter a query that will get sifted through bioRχiv feeds.",
+            "It can be e.g. 'On structuring and dynamics of membranes.'",
         ].join("\n    ");
     }
 
     render() {
         return (
             <div id="form-query-cover">
-                <div id="form-query-roof">
-                    <label
-                        id="form-query-title"
-                        title={
-                            "LLM presents articles from the selected bioRχiv"
-                            + " feed according to the query entered below"
-                        }
-                        htmlFor={this.textareaIdName}
-                    >
-                        {this.queryLabel}
-                    </label>
+                <div
+                    id="form-query-upper"
+                >
+                <label
+                    id="form-query-title"
+                    title={
+                        "Query to sift through chosen bioRχiv subjects"
+                    }
+                    htmlFor={this.textareaIdName}
+                >
+                    {this.queryLabel}
+                </label>
+                <div id="form-query-choices">
                     {this.children}
+                </div>
                 </div>
                 <textarea
                     ref={this.textareaRef}
