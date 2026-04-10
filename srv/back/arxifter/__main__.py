@@ -27,6 +27,7 @@ from .setting import (
     COMMAND_SPAN,
     COMMAND_SPAN_INGEST_INCR,
     COMMAND_SPAN_INGEST_FULL,
+    COMMAND_SPAN_INGEST_DAYS,
     COMMAND_TESTS,
     COMMAND_TESTS_FEED_PARSING,
     COMMAND_TESTS_FEED_INDEXING,
@@ -104,7 +105,7 @@ def do_feeds_prune():
     return res
 
 
-def do_span_ingest(full):
+def do_span_ingest(form):
     """
     Ingests JSON API feeds: via downloading, indexing and saving them.
     """
@@ -112,7 +113,7 @@ def do_span_ingest(full):
     log_info("starting span ingest")
     try:
         from .spans.ingester import ingest_span
-        res = ingest_span(full)
+        res = ingest_span(form)
     except Exception as exc:
         log_error(str(exc))
         res = False
@@ -154,6 +155,15 @@ def do_help():
     """
     Writes how to use these arxifter tools.
     """
+    span_forms = "|".join([
+        str(COMMAND_SPAN_INGEST_INCR),
+        str(COMMAND_SPAN_INGEST_FULL),
+        str("..".join([
+            str(COMMAND_SPAN_INGEST_DAYS[0]),
+            str(COMMAND_SPAN_INGEST_DAYS[-1]),
+        ])),
+    ])
+
     log_message("\n".join([
         "use it as either of:",
         f"python -m arxifter {COMMAND_CONFIG} {COMMAND_CONFIG_ENV}",
@@ -168,8 +178,7 @@ def do_help():
         f"python -m arxifter {COMMAND_FEEDS} {COMMAND_FEEDS_PRUNE}",
         "    for pruning the past feeds (it is meant to be run by cron)",
         "    it needs to have the configuration env. variable set",
-        f"python -m arxifter {COMMAND_SPAN} "
-        f"{COMMAND_SPAN_INGEST_INCR}|{COMMAND_SPAN_INGEST_FULL}",
+        f"python -m arxifter {COMMAND_SPAN} {span_forms}",
         "    for ingesting biorxiv data (it is meant to be run by cron)",
         "    it needs to have the configuration env. variable set",
         f"python -m arxifter {COMMAND_TESTS} {COMMAND_TESTS_FEED_PARSING}",
@@ -211,10 +220,12 @@ if __name__ == "__main__":
             elif sys.argv[2] == COMMAND_FEEDS_PRUNE:
                 sys.exit(0 if do_feeds_prune() else 2)
         elif sys.argv[1] == COMMAND_SPAN:
-            if sys.argv[2] == COMMAND_SPAN_INGEST_INCR:
-                sys.exit(0 if do_span_ingest(full=False) else 2)
-            if sys.argv[2] == COMMAND_SPAN_INGEST_FULL:
-                sys.exit(0 if do_span_ingest(full=True) else 2)
+            if (
+                (sys.argv[2] == COMMAND_SPAN_INGEST_INCR)
+                or (sys.argv[2] == COMMAND_SPAN_INGEST_FULL)
+                or (sys.argv[2] in COMMAND_SPAN_INGEST_DAYS)
+            ):
+                sys.exit(0 if do_span_ingest(sys.argv[2]) else 2)
         elif sys.argv[1] == COMMAND_TESTS:
             if sys.argv[2] == COMMAND_TESTS_FEED_PARSING:
                 sys.exit(0 if do_test_feed_parsing() else 2)

@@ -16,6 +16,9 @@ from pathlib import Path
 import datetime as dt
 
 from ..setting import (
+    COMMAND_SPAN_INGEST_INCR,
+    COMMAND_SPAN_INGEST_FULL,
+    COMMAND_SPAN_INGEST_DAYS,
     NEW_DIRS_MODE,
     ENV_CONF_PATH,
 )
@@ -396,7 +399,7 @@ def _write_passage_time_info(start_time, pause_time, passage_type):
     ]))
 
 
-def ingest_span(full_ingest=False):
+def ingest_span(ingest_form):
     """
     Ingests doc data from the JSON API.
     The taken doc data are saved to depo, their embeddings are made
@@ -404,13 +407,21 @@ def ingest_span(full_ingest=False):
     and a new span with indexes (of docs and embeddings) is created.
     """
     conf = get_conf(ENV_CONF_PATH)
+    if conf is None:
+        log_error("cannot get configuration")
+        return False
     current_dt = dt.datetime.now(dt.UTC)
     debugging = conf["debugging"]["feed_ingest"]
 
-    if full_ingest:
+    if ingest_form == COMMAND_SPAN_INGEST_FULL:
         date_span_save = conf["data"]["depo_depth"]
-    else:
+    elif ingest_form == COMMAND_SPAN_INGEST_INCR:
         date_span_save = conf["data"]["depo_renew"]
+    elif ingest_form in COMMAND_SPAN_INGEST_DAYS:
+        date_span_save = int(ingest_form)
+    else:
+        return False
+
     date_span_turn = conf["data"]["depo_depth"]
     date_span_load = conf["data"]["depo_depth"]
 

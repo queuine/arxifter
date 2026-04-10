@@ -164,8 +164,8 @@ def _check_rank_within_similar_articles(
             [
                 SequenceMatcher(
                     None,
-                    title_prefix,
-                    sim_art["content"]["title"][:title_len],
+                    str(title_prefix).lower(),
+                    str(sim_art["content"]["title"][:title_len]).lower(),
                 ).ratio(),
                 idx,
             ]
