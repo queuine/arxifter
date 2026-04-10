@@ -75,6 +75,14 @@ function ArxifterPage() {
     searchFormRef.current?.setAutoFocus(toAutoFocus);
   };
 
+  // local storage: setting for whether the page should be in dark mode
+  const getInDarkMode = () => {
+    return storageLoadSetupInDarkMode(getStoragePrefix());
+  };
+  const setInDarkMode = toInDarkMode => {
+    storageSaveSetupInDarkMode(getStoragePrefix(), toInDarkMode);
+  };
+
   // functions for taking the current user
   const hasUserSet = () => {
     return popupUsersRef.current?.hasUserSet();
@@ -277,6 +285,8 @@ function ArxifterPage() {
     saveLastSearches: saveLastSearches,
     getAutoFocusTA: getAutoFocusTA,
     setAutoFocusTA: setAutoFocusTA,
+    getInDarkMode: getInDarkMode,
+    setInDarkMode: setInDarkMode,
     closePopup: () => {
       closePopupSetting();
     }

@@ -133,6 +133,11 @@ function storageGetKeyAutoFocusTA() {
     return "autoFocusTA";
 };
 
+// the key for value of whether the page should be in dark mode
+function storageGetKeyInDarkMode() {
+    return "inDarkMode";
+};
+
 // take default values of the user-related setup
 function storageGetDefaultSetupUsers() {
     return {
@@ -158,7 +163,8 @@ function storageGetDefaultSetupSaving() {
 // take default values of the UI-related setup
 function storageGetDefaultSetupUI() {
     return {
-        [storageGetKeyAutoFocusTA()]: true
+        [storageGetKeyAutoFocusTA()]: true,
+        [storageGetKeyInDarkMode()]: false
     };
 };
 
@@ -300,6 +306,11 @@ function storageLoadSetupAutoFocusTA(prefix) {
     return storageLoadSetupUI(prefix)[storageGetKeyAutoFocusTA()];
 };
 
+// take whether the page should be in dark mode
+function storageLoadSetupInDarkMode(prefix) {
+    return storageLoadSetupUI(prefix)[storageGetKeyInDarkMode()];
+};
+
 // save whether the user is supposed to be a guest
 function storageSaveSetupIsGuest(prefix, value) {
     storageSaveSetupUsers(prefix, storageGetKeyIsGuest(), value)
@@ -323,4 +334,9 @@ function storageSaveSetupSaveSifts(prefix, value) {
 // save whether the query text area should be auto-focused
 function storageSaveSetupAutoFocusTA(prefix, value) {
     storageSaveSetupUI(prefix, storageGetKeyAutoFocusTA(), value);
+};
+
+// save whether the page should be in dark mode
+function storageSaveSetupInDarkMode(prefix, value) {
+    storageSaveSetupUI(prefix, storageGetKeyInDarkMode(), value);
 };

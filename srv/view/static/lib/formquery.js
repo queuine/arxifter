@@ -30,7 +30,7 @@ class FormQuery extends React.Component {
       });
     };
     this.queryLabel = "" + "Query";
-    this.queryPlaceholder = ["", "Enter a query that will get sifted through bioRχiv feeds.", "It can be e.g. 'On structuring and dynamics of membranes.'"].join("\n    ");
+    this.queryPlaceholder = ["", "Enter a well set out query for sifting through bioRχiv feeds.", "E.g. 'On regenerative medicine and rejuvenation or longevity.'"].join("\n    ");
   }
   render() {
     return /*#__PURE__*/React.createElement("div", {

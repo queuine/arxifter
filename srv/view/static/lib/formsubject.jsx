@@ -40,6 +40,7 @@ function FormSubject(props) {
                 name={subjectName}
                 defaultValue={biorxivSubjectLabelDefault}
             >
+                <button><selectedcontent></selectedcontent></button>
                 {biorxivSubjectLabels.map(subjectLabel =>
                     <option key={subjectLabel} value={subjectLabel}>
                         {utilsToSubjectView(subjectLabel)}

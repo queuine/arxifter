@@ -13,7 +13,8 @@ class PopupSetting extends React.Component {
         this.maxSaveSearches = getFabricUi()["recallSifts"];
         this.state = {
             searchSaving: props.getSaveLastSearches(),
-            autoFocusTA: props.getAutoFocusTA()
+            autoFocusTA: props.getAutoFocusTA(),
+            atDarkMode: props.getInDarkMode()
         };
         this.manageSearchSaving = (toSave) => {
             props.setSaveLastSearches(toSave);
@@ -22,6 +23,15 @@ class PopupSetting extends React.Component {
         this.manageAutoFocusTA = (toAutoFocus) => {
             props.setAutoFocusTA(toAutoFocus);
         };
+        this.setLightDarkView = (atDarkMode) => {
+            const newTheme = atDarkMode ? "dark" : "light";
+            document.documentElement.setAttribute('data-theme', newTheme);
+        };
+        this.manageDarkMode = (toDarkMode) => {
+            props.setInDarkMode(toDarkMode);
+            this.setLightDarkView(toDarkMode);
+        };
+        this.setLightDarkView(this.state.atDarkMode);
     }
 
     render() {
@@ -85,6 +95,26 @@ class PopupSetting extends React.Component {
                             htmlFor="popup-setting-autofocus-checkbox"
                         >
                             autofocus the query text area
+                        </label>
+                    </div>
+                    <div id="popup-setting-darkmode">
+                        <input
+                            type="checkbox"
+                            id="popup-setting-darkmode-checkbox"
+                            checked={this.state.atDarkMode}
+                            onChange={(e) => {
+                                const toDarkMode = e.target.checked;
+                                this.setState({
+                                    atDarkMode: toDarkMode
+                                });
+                                this.manageDarkMode(toDarkMode);
+                            }}
+                        />
+                        <label
+                            id="popup-setting-darkmode-label"
+                            htmlFor="popup-setting-darkmode-checkbox"
+                        >
+                            display the page in dark mode
                         </label>
                     </div>
                 </div>

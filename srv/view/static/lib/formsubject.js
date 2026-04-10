@@ -22,7 +22,7 @@ function FormSubject(props) {
     id: "form-subject-selection",
     name: subjectName,
     defaultValue: biorxivSubjectLabelDefault
-  }, biorxivSubjectLabels.map(subjectLabel => /*#__PURE__*/React.createElement("option", {
+  }, /*#__PURE__*/React.createElement("button", null, /*#__PURE__*/React.createElement("selectedcontent", null)), biorxivSubjectLabels.map(subjectLabel => /*#__PURE__*/React.createElement("option", {
     key: subjectLabel,
     value: subjectLabel
   }, utilsToSubjectView(subjectLabel)))));

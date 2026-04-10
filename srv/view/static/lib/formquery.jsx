@@ -36,8 +36,8 @@ class FormQuery extends React.Component {
 
         this.queryPlaceholder = [
             "",
-            "Enter a query that will get sifted through bioRχiv feeds.",
-            "It can be e.g. 'On structuring and dynamics of membranes.'",
+            "Enter a well set out query for sifting through bioRχiv feeds.",
+            "E.g. 'On regenerative medicine and rejuvenation or longevity.'"
         ].join("\n    ");
     }
 

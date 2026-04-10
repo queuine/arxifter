@@ -9,7 +9,7 @@ function FormSubmit({disabled}) {
     return (
         <button
             id="form-submit-button"
-            title="send the query to LLM"
+            title="send the query to LLMs"
             disabled={disabled}
         >
             Submit

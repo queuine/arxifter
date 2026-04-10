@@ -12,7 +12,8 @@ class PopupSetting extends React.Component {
     this.maxSaveSearches = getFabricUi()["recallSifts"];
     this.state = {
       searchSaving: props.getSaveLastSearches(),
-      autoFocusTA: props.getAutoFocusTA()
+      autoFocusTA: props.getAutoFocusTA(),
+      atDarkMode: props.getInDarkMode()
     };
     this.manageSearchSaving = toSave => {
       props.setSaveLastSearches(toSave);
@@ -21,6 +22,15 @@ class PopupSetting extends React.Component {
     this.manageAutoFocusTA = toAutoFocus => {
       props.setAutoFocusTA(toAutoFocus);
     };
+    this.setLightDarkView = atDarkMode => {
+      const newTheme = atDarkMode ? "dark" : "light";
+      document.documentElement.setAttribute('data-theme', newTheme);
+    };
+    this.manageDarkMode = toDarkMode => {
+      props.setInDarkMode(toDarkMode);
+      this.setLightDarkView(toDarkMode);
+    };
+    this.setLightDarkView(this.state.atDarkMode);
   }
   render() {
     return /*#__PURE__*/React.createElement("div", {
@@ -62,7 +72,23 @@ class PopupSetting extends React.Component {
     }), /*#__PURE__*/React.createElement("label", {
       id: "popup-setting-autofocus-label",
       htmlFor: "popup-setting-autofocus-checkbox"
-    }, "autofocus the query text area"))), /*#__PURE__*/React.createElement("div", {
+    }, "autofocus the query text area")), /*#__PURE__*/React.createElement("div", {
+      id: "popup-setting-darkmode"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      id: "popup-setting-darkmode-checkbox",
+      checked: this.state.atDarkMode,
+      onChange: e => {
+        const toDarkMode = e.target.checked;
+        this.setState({
+          atDarkMode: toDarkMode
+        });
+        this.manageDarkMode(toDarkMode);
+      }
+    }), /*#__PURE__*/React.createElement("label", {
+      id: "popup-setting-darkmode-label",
+      htmlFor: "popup-setting-darkmode-checkbox"
+    }, "display the page in dark mode"))), /*#__PURE__*/React.createElement("div", {
       className: "arxifter-popup-bottom"
     }, /*#__PURE__*/React.createElement("button", {
       className: "arxifter-popup-close",
