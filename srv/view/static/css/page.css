@@ -583,6 +583,12 @@ body:has(.arxifter-page-popup[open]) {
     font-family: sans-serif;
     padding: 3px 0em 3px 0em;
 }
+.form-submit-button-disabled {
+    color: var(--text-muted);
+}
+.form-submit-button-enabled {
+    color: var(--text-default);
+}
 .answer-item {
     margin-bottom: 10px;
 }

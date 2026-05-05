@@ -44,10 +44,16 @@ TRUTH_VALUES_STR = ["1", "y", "yes", "t", "true", "truth", "on", "ok"]
 FALSE_VALUES_STR = ["0", "n", "no", "f", "false", "untrue", "off", "ko"]
 REPLACEMENT_CHAR = "□"
 
+# LLM prompts
+LLM_PROMPT_COMMENT_START = ";;"
+# encoding info into model name
+LLM_NAME_SEP = "|"
+LLM_NAME_THINK = "think"
+LLM_NAME_COT = "cot"
 # asking the remote LLM:
-# if it goes that long, it means that either the provider has an issue,
-# or the used LLM is not suitable for working on the task at hand;
-LLM_ASKING_TIMEOUT = 120
+LLM_ASKING_RETRY = 0
+LLM_ASKING_MAX_CONN = 1000
+LLM_ASKING_MAX_CONN_KA = 100
 # answers from LLM
 ARTICLE_KEY_RANK = "artnum"
 ARTICLE_KEY_RANK_VAR = ["art", "num"]
@@ -65,6 +71,8 @@ LLM_TITLE_START_REGS = [
 # repairing the naswers
 JSON_START_REMOVALS = ["```json", "```"]
 JSON_END_REMOVALS = ["```"]
+JSON_FLANK_START = "```json"
+JSON_FLANK_END = "```"
 ARTICLE_RECOGNIZING_THRESHOLD = 0.1
 
 # sifting through last counts vs. last days
@@ -232,6 +240,7 @@ FEED_REPLS_SYMS = {
     "middle dot": "·",
     "micro": "μ",
     "bigcirc": " o",
+    "nabla": "∇",
 }
 for letter_name, letter_symbol in NAMED_GREEK_LETTERS.items():
     FEED_REPLS_SYMS[letter_name] = letter_symbol

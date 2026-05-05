@@ -24,6 +24,7 @@ from .setting import (
     PRESIFT_LAST_DAYS,
     LLM_API_FORM_RESPONSES,
     LLM_API_FORM_CHAT_COMPLETIONS,
+    LLM_PROMPT_COMMENT_START,
 )
 from .utils import (
     subject_spec_to_base_subjects,
@@ -283,8 +284,16 @@ def _setup_prompt_parts(conf):
             "\n" + conf["prompts"]["asking_honest"]["content"]
         )
 
-    conf["prompts"]["ending_part"]["content"] = _read_prompt_template(
-        conf["prompts"]["ending_part"]["path"]
+    conf["prompts"]["query_part"]["content"] = _read_prompt_template(
+        conf["prompts"]["query_part"]["path"]
+    )
+
+    conf["prompts"]["asking_think"]["content"] = _read_prompt_template(
+        conf["prompts"]["asking_think"]["path"]
+    )
+
+    conf["prompts"]["asking_cot"]["content"] = _read_prompt_template(
+        conf["prompts"]["asking_cot"]["path"]
     )
 
 
@@ -454,7 +463,13 @@ def _fill_conf(conf, conf_path):
             ["data", ["storage_dir"]],
             ["libs", ["hnswlib"]],
             ["embed", ["models_base_dir"]],
-            ["prompts", ["main_part", "asking_honest", "ending_part"]],
+            ["prompts", [
+                "main_part",
+                "query_part",
+                "asking_honest",
+                "asking_think",
+                "asking_cot",
+            ]],
             ["users", ["regular_users", "guest_ids"]],
             ["keys", ["regular_users", "guest_user"]],
             ["mocking", ["answers_dir"]],
@@ -517,6 +532,7 @@ def _fill_conf(conf, conf_path):
             ["data", ["kept_days", "depo_depth", "depo_renew"]],
             ["embed", ["dense_embed_dim", "static_embed_dim"]],
             ["sifting", ["answer_max_count"]],
+            ["llms", ["timeout"]],
             ["users", ["guest_span"]],
         ]:
             for item in itemlist:
@@ -544,6 +560,8 @@ def _read_prompt_template(file_path):
     with open(file_path, encoding="utf8") as fh:
         complete_line = []
         for line in fh:
+            if line.startswith(LLM_PROMPT_COMMENT_START):
+                continue
             if line.endswith("\n"):
                 # to get rid of the trailing new-line character
                 line = line[:-1]

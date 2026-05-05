@@ -69,13 +69,12 @@ it makes arχifter open to many LLM systems and models.
 It is advisable to use the weakest LLMs that are still capable to do
 the respective work, so that the amount of consumed resources is as small as possible.
 Regarding the counts of parameters of LLMs, the point of interest here is
-the middle range of them, cca 20b to 30b of LLM parameters.
+the middle range of them, cca 20 to 40 billion of LLM parameters.
 
-This middle range of LLMs provides some models that work reasonably well
-as the arχifter sifters.
-Besides the nano versions of GPT-5 series from OpenAI services can do the work here,
-the following open-source LLMs have been found to be sufficient too:
-OpenAI's GPT-OSS-20b and NVIDIA's Nemotron-3-Nano-30B-A3B.
+This middle range of LLMs provides some models that work reasonably well as arχifter sifters.
+The following middle-range open-weights LLMs have been found to be sufficient:
+NVIDIA's *Nemotron-3-Nano-30B-A3B*, OpenAI's *GPT-OSS-20B*,
+Google's *Gemma-4-31B* (with CoT), Alibaba's Qwen3.6-35B-A3B.
 
 #### configs and scripts
 

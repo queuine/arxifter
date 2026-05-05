@@ -399,7 +399,7 @@ def _write_passage_time_info(start_time, pause_time, passage_type):
     ]))
 
 
-def ingest_span(ingest_form):
+def ingest_span(ingest_form, side_data_sufficient=True):
     """
     Ingests doc data from the JSON API.
     The taken doc data are saved to depo, their embeddings are made
@@ -443,7 +443,10 @@ def ingest_span(ingest_form):
         debugging=debugging,
     ):
         log_error("saving a span failed")
-        return False
+        # Not ending the span-taking business here by default,
+        # b/c most of the data should be in due to the RSS intake.
+        if not side_data_sufficient:
+            return False
 
     turn_start_time = time.time()
     turn_pause_time = (

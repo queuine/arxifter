@@ -10,7 +10,8 @@ function FormSubmit({
   return /*#__PURE__*/React.createElement("button", {
     id: "form-submit-button",
     title: "send the query to LLMs",
-    disabled: disabled
+    disabled: disabled,
+    className: disabled ? "form-submit-button-disabled" : "form-submit-button-enabled"
   }, "Submit");
 }
 export { FormSubmit as default };

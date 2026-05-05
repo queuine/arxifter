@@ -10,6 +10,8 @@ from json_repair import repair_json
 from .setting import (
     JSON_START_REMOVALS,
     JSON_END_REMOVALS,
+    JSON_FLANK_START,
+    JSON_FLANK_END,
 )
 
 
@@ -27,6 +29,26 @@ def _simple_repairing(answer):
 
     # some met broken answers had single-instead-of-double quotes
     return answer.replace("'\n", '"\n').replace("',\n", '",\n')
+
+
+def _last_json_in_text(answer):
+    # some provider/LLMs services return the answer along with reasoning;
+    # it is not clear whether the inference providers fail in separating
+    # the reasoning from the actual output, or whether those LLMs fail it,
+    # but the actual output lacks any separating tokens then;
+    # when the eventual json is at least flanked by ```json and ```,
+    # it is possible to take it as the last occurrence of it;
+    last_start = answer.rfind(JSON_FLANK_START)
+    if last_start < 0:
+        return None
+    answer = answer[last_start+len(JSON_FLANK_START):]
+    last_end = answer.rfind(JSON_FLANK_END)
+    if last_end < 0:
+        return None
+    answer = answer[:last_end]
+    if not answer.strip():
+        return None
+    return _simple_repairing(answer)
 
 
 def _thorough_repairing(answer):
@@ -60,6 +82,11 @@ def parse_llm_answer(conf, get_logger, answer):
         [
             _simple_repairing,
             "LLM answer had minor issues (fixed automatically)",
+            False,
+        ],
+        [
+            _last_json_in_text,
+            "LLM answer was apparently returned mixed with reasoning",
             False,
         ],
         [

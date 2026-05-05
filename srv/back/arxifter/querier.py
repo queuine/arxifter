@@ -11,23 +11,29 @@ Some inference models have issues with returning the artnum correctly, thus:
 """
 import asyncio, json, traceback
 
+import httpx
 from openai import AsyncOpenAI
 
 from .setting import (
     ARTICLE_KEY_RANK,
+    LLM_NAME_SEP,
+    LLM_NAME_THINK,
+    LLM_NAME_COT,
     LLM_INFERRING_TITLE_THRESHOLD,
     LLM_INFERRING_TITLE_CUT_LENGTH,
     LLM_INFERRING_ABSTRACT_THRESHOLD,
     LLM_INFERRING_ABSTRACT_CUT_LENGTH,
     LLM_INFERRING_CUT_NOTICE,
-    LLM_ASKING_TIMEOUT,
+    LLM_ASKING_RETRY,
+    LLM_ASKING_MAX_CONN,
+    LLM_ASKING_MAX_CONN_KA,
     LLM_API_FORM_RESPONSES,
     LLM_API_FORM_CHAT_COMPLETIONS,
 )
 from .mocking import get_mocked_answer
 
 
-def _get_querier(conf, api_key):
+def _get_querier(conf, api_key, http_client):
     additional_params = {}
     if conf["llms"]["base_url"] != "":
         additional_params["base_url"] = conf["llms"]["base_url"]
@@ -35,10 +41,12 @@ def _get_querier(conf, api_key):
     return {
         "client": AsyncOpenAI(
             api_key=api_key,
-            timeout=LLM_ASKING_TIMEOUT,
+            http_client=http_client,
+            max_retries=LLM_ASKING_RETRY,
+            timeout=conf["llms"]["timeout"],
             **additional_params,
         ),
-        "model": conf["llms"]["model_name"],
+        "model": conf["llms"]["model_name"].split(LLM_NAME_SEP)[0],
     }
 
 
@@ -82,47 +90,79 @@ def _get_system_text(conf, similar_articles):
 
 def _get_user_text(conf, query):
     return (
-        conf["prompts"]["ending_part"]["content"]
+        conf["prompts"]["query_part"]["content"]
     ).replace(
         "{query_str}",
         json.dumps(query),
     )
 
 
-async def exec_query(
-    conf, similar_articles, query, api_key, get_logger, subject_spec
-):
-    """
-    Queries an LLM and returns its answer.
-    It requires to have all the query components already prepared;
-    those components are:
-    * presifted feed (as the articles that possibly correspond to the query),
-    * user question on the feeds (as a parameter),
-    * prompt to the LLM: prompts are within the loaded configuration,
-    * API key.
-    If the system is set to mock the LLM, it returns a mocked LLM answer.
-    """
-    logger = get_logger(__name__)
-    querier = _get_querier(conf, api_key)
-
-    query_prompt = "\n".join([
-        _get_system_text(conf, similar_articles),
-        _get_user_text(conf, query),
-    ])
-
-    if conf["mocking"]["to_mock"]:
-        if conf["debugging"]["query_sifting"]:
-            logger.debug(query_prompt)
-        answer = get_mocked_answer(conf, subject_spec)
-        if conf["mocking"]["mocking_delay"] > 0:
-            await asyncio.sleep(conf["mocking"]["mocking_delay"])
-        return answer
-
-    response = None
+def _debug_response(conf, logger, response):
     try:
-        additional_req_params = {}
-        # some models tend to explode for thinking too much;
-        # it leads to raising an exception that is caught here;
+        logger.debug("\n".join(["response:", str(response)]))
+    except Exception:
+        pass
+    try:
+        if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
+            for part in response.output:
+                if part.type == "reasoning":
+                    for subpart in [
+                        [part.content, "reasoning:"],
+                        [part.summary, "reasoning summary:"],
+                    ]:
+                        if subpart[0] is None:
+                            continue
+                        logger.debug("\n".join([
+                            subpart[1],
+                            *[
+                                str(item.text) for item in subpart[0]
+                                if item is not None
+                            ],
+                        ]))
+        elif conf["llms"]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
+            if hasattr(response.choices[0].message, "reasoning"):
+                logger.debug("\n".join([
+                    "reasoning:",
+                    str(response.choices[0].message.reasoning)
+                ]))
+            if hasattr(response.choices[0].message, "reasoning_content"):
+                logger.debug("\n".join([
+                    "reasoning content:",
+                    str(response.choices[0].message.reasoning_content)
+                ]))
+    except Exception:
+        logger.debug("could not display the LLM reasoning")
+
+
+async def _exec_query_inner(conf, logger, querier, query_prompt):
+    response = None
+    prompt_prefix = ""
+    prompt_postfix = ""
+    additional_req_params = {}
+
+    model_name_parts = (
+        conf["llms"]["model_name"].lower().split(LLM_NAME_SEP)[1:]
+    )
+    force_to_think = LLM_NAME_THINK.lower() in model_name_parts
+    force_to_cot = LLM_NAME_COT.lower() in model_name_parts
+
+    if force_to_think:
+        prompt_prefix += (
+            conf["prompts"]["asking_think"]["content"]
+        )
+        additional_req_params["extra_body"] = {
+            "reasoning": {"enabled": True},
+            "chat_template_kwargs": {"enable_thinking": True},
+            "skip_special_tokens": False,
+        }
+    if force_to_cot:
+        prompt_postfix += (
+            "\n" + conf["prompts"]["asking_cot"]["content"]
+        )
+
+    # some models tend to explode for thinking too long;
+    # it leads to raising an exception that is caught here;
+    try:
         if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
             if conf["llms"]["max_tokens"] != 0:
                 additional_req_params["max_output_tokens"] = (
@@ -134,7 +174,7 @@ async def exec_query(
                 # all the info for the inferrer is put into "input",
                 # b/c splitting it to "instructions" vs. "input"
                 # leaves some inferrers ignoring the "instructions";
-                input=query_prompt,
+                input=prompt_prefix + query_prompt + prompt_postfix,
                 store=False,
                 **additional_req_params,
             )
@@ -151,7 +191,9 @@ async def exec_query(
                 messages=[
                     {
                         "role": "user",
-                        "content": query_prompt,
+                        "content": (
+                            prompt_prefix + query_prompt + prompt_postfix
+                        ),
                     },
                 ],
                 **additional_req_params,
@@ -167,38 +209,10 @@ async def exec_query(
     if response is None:
         return None
 
-    answer = None
-    try:
-        if conf["debugging"]["query_sifting"]:
-            logger.debug("\n".join(["response:", str(response)]))
-    except Exception:
-        pass
-    try:
-        if conf["debugging"]["query_sifting"]:
-            if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
-                for part in response.output:
-                    if part.type == "reasoning":
-                        for subpart in [
-                            [part.content, "reasoning:"],
-                            [part.summary, "reasoning summary:"],
-                        ]:
-                            if subpart[0] is None:
-                                continue
-                            logger.debug("\n".join([
-                                subpart[1],
-                                *[
-                                    str(item.text) for item in subpart[0]
-                                    if item is not None
-                                ],
-                            ]))
-            elif conf["llms"]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
-                logger.debug("\n".join([
-                    "reasoning:",
-                    str(response.choices[0].message.reasoning)
-                ]))
-    except Exception:
-        logger.debug("could not display the LLM reasoning")
+    if conf["debugging"]["query_sifting"]:
+        _debug_response(conf, logger, response)
 
+    answer = None
     try:
         if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
             answer = str(response.output_text)
@@ -210,3 +224,43 @@ async def exec_query(
             str(exc),
         ]))
     return answer
+
+
+async def exec_query(
+    conf, similar_articles, query, api_key, get_logger, subject_spec
+):
+    """
+    Queries an LLM and returns its answer.
+    It requires to have all the query components already prepared;
+    those components are:
+    * presifted feed (as the articles that possibly correspond to the query),
+    * user question on the feeds (as a parameter),
+    * prompt to the LLM: prompts are within the loaded configuration,
+    * API key.
+    If the system is set to mock the LLM, it returns a mocked LLM answer.
+    """
+    logger = get_logger(__name__)
+
+    async with httpx.AsyncClient(
+        limits=httpx.Limits(
+            max_connections=LLM_ASKING_MAX_CONN,
+            max_keepalive_connections=LLM_ASKING_MAX_CONN_KA,
+        ),
+        timeout=conf["llms"]["timeout"],
+    ) as http_client:
+        querier = _get_querier(conf, api_key, http_client)
+
+        query_prompt = "\n".join([
+            _get_system_text(conf, similar_articles),
+            _get_user_text(conf, query),
+        ])
+
+        if conf["mocking"]["to_mock"]:
+            if conf["debugging"]["query_sifting"]:
+                logger.debug(query_prompt)
+            answer = get_mocked_answer(conf, subject_spec)
+            if conf["mocking"]["mocking_delay"] > 0:
+                await asyncio.sleep(conf["mocking"]["mocking_delay"])
+            return answer
+
+        return await _exec_query_inner(conf, logger, querier, query_prompt)

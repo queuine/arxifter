@@ -7,5 +7,6 @@ onnxruntime
 fastembed
 #hnswlib
 aiohttp
+httpx
 openai
 setproctitle

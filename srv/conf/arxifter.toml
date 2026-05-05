@@ -151,17 +151,30 @@ pick_count_static = 5
 answer_max_count = 5
 
 [prompts]
-# the prompt parts that are used for LLM querying
+# the prompt parts that are used for LLM querying;
+# prompt lines that start with ';;' (two semicolons) are taken as comments
 main_part = "prompts/main.txt"
+query_part = "prompts/query.txt"
+# put in the middle if the used LLM has to be reminded of being honest
 asking_honest = "prompts/honest.txt"
-ending_part = "prompts/ending.txt"
+# put to start if the used LLM has to be forced to reasoning
+asking_think = "prompts/think.txt"
+# put to end if the used LLM has to be forced to CoT
+asking_cot = "prompts/cot.txt"
 
 [llms]
 # setting the max count of tokens that the remote LLM can do;
 # it sums the reasoning and the actual-output tokens;
 # (that if the used remote system supports this part of OpenAI API);
 # setting "max_tokens" to 0 means that there is no cap set up;
+# max_tokens = 16384
 max_tokens = 0
+# most of the usable LLMs answer within 1 min,
+# thus timeout of 120 seconds is safe for them;
+# but seed-oss-36b is quite slow (1 to 3 mins to answer),
+# thus its use asks for a longer timeout, some 240 secs;
+# and qwen3.6-27b asks for such a longer timeout too;
+timeout = 120
 # LLM inference API end point for OpenAI compatible services;
 # empty "base_url" means that OpenAI is used;
 # * "model_name" model used by the inferring LLM;
@@ -171,34 +184,41 @@ max_tokens = 0
 
 # NVIDIA:
 # base_url = "https://integrate.api.nvidia.com/v1"
+# asking_form = "chat-completions"
 # model_name = "nvidia/nemotron-3-nano-30b-a3b"
 # ask_honest = false
-# asking_form = "chat-completions"
 
 # Nebius:
 # base_url = "https://api.tokenfactory.nebius.com/v1/"
+# asking_form = "chat-completions"
 # model_name = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
 # ask_honest = false
-# asking_form = "chat-completions"
 
 # OpenRouter:
 # base_url = "https://openrouter.ai/api/v1"
+# asking_form = "chat-completions"
 # model_name = "nvidia/nemotron-3-nano-30b-a3b"
+# ask_honest = false
 # model_name = "openai/gpt-oss-20b"
 # ask_honest = false
-# asking_form = "chat-completions"
+# model_name = "google/gemma-4-31b-it|cot"
+# ask_honest = true
+# model_name = "qwen/qwen3.6-35b-a3b"
+# ask_honest = true
+# model_name = "inception/mercury-2"
+# ask_honest = false
 
 # Fireworks AI:
 # base_url = "https://api.fireworks.ai/inference/v1"
+# asking_form = "responses"
 # model_name = "fireworks/gpt-oss-20b"
 # ask_honest = false
-# asking_form = "responses"
 
 # OpenAI:
 base_url = ""
+asking_form = "responses"
 model_name = "gpt-5-nano"
 ask_honest = false
-asking_form = "responses"
 
 [users]
 # if a deployment is to be w/o allowing guests,

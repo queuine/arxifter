@@ -11,6 +11,13 @@ function FormSubmit({disabled}) {
             id="form-submit-button"
             title="send the query to LLMs"
             disabled={disabled}
+            className={
+                disabled
+                ?
+                "form-submit-button-disabled"
+                :
+                "form-submit-button-enabled"
+            }
         >
             Submit
         </button>
