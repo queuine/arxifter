@@ -644,6 +644,9 @@ body:has(.arxifter-page-popup[open]) {
     visibility: visible;
     transition: all 0.1s ease 0.5s;
 }
+.answer-item-abstract {
+    overflow-wrap: break-word;
+}
 .answer-item-abstract-middle {
     background: var(--bg-highlight);
 }

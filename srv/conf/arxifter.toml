@@ -183,30 +183,30 @@ timeout = 120
 # * "asking_form" is "responses" or "chat-completions"
 
 # NVIDIA:
+# * inference via this provider is free of charge,
+#   but it is for testing purposes only;
 # base_url = "https://integrate.api.nvidia.com/v1"
 # asking_form = "chat-completions"
-# model_name = "nvidia/nemotron-3-nano-30b-a3b"
+# model_name = "openai/gpt-oss-20b"
 # ask_honest = false
-
-# Nebius:
-# base_url = "https://api.tokenfactory.nebius.com/v1/"
-# asking_form = "chat-completions"
-# model_name = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+# model_name = "nvidia/nemotron-3-nano-30b-a3b"
 # ask_honest = false
 
 # OpenRouter:
-# base_url = "https://openrouter.ai/api/v1"
-# asking_form = "chat-completions"
-# model_name = "nvidia/nemotron-3-nano-30b-a3b"
-# ask_honest = false
+base_url = "https://openrouter.ai/api/v1"
+asking_form = "chat-completions"
 # model_name = "openai/gpt-oss-20b"
 # ask_honest = false
+model_name = "nvidia/nemotron-3-nano-30b-a3b"
+ask_honest = false
 # model_name = "google/gemma-4-31b-it|cot"
 # ask_honest = true
 # model_name = "qwen/qwen3.6-35b-a3b"
 # ask_honest = true
-# model_name = "inception/mercury-2"
+# model_name = "cohere/north-mini-code:free"
 # ask_honest = false
+# model_name = "poolside/laguna-xs-2.1|think"
+# ask_honest = true
 
 # Fireworks AI:
 # base_url = "https://api.fireworks.ai/inference/v1"
@@ -214,11 +214,11 @@ timeout = 120
 # model_name = "fireworks/gpt-oss-20b"
 # ask_honest = false
 
-# OpenAI:
-base_url = ""
-asking_form = "responses"
-model_name = "gpt-5-nano"
-ask_honest = false
+# Nebius:
+# base_url = "https://api.tokenfactory.nebius.com/v1/"
+# asking_form = "chat-completions"
+# model_name = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+# ask_honest = false
 
 [users]
 # if a deployment is to be w/o allowing guests,

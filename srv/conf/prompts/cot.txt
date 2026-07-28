@@ -1,5 +1,6 @@
-;; taken from docs of Granite LLM, as it has been tested primarily on it
-You can write down your thoughts and reasoning process before responding. \
+;; adapted from docs of Granite LLM, as it has been tested primarily on it
+Always write down your thoughts and reasoning process before responding. \
 In the thought process, engage in a comprehensive cycle of analysis, \
 summarization, exploration, and reflection. \
-In the response section, systematically present the final solution.
+Only after writing down the thought process, \
+present the final solution in the response section at the asked-for JSON format.

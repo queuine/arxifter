@@ -73,8 +73,9 @@ the middle range of them, cca 20 to 40 billion of LLM parameters.
 
 This middle range of LLMs provides some models that work reasonably well as arχifter sifters.
 The following middle-range open-weights LLMs have been found to be sufficient:
-NVIDIA's *Nemotron-3-Nano-30B-A3B*, OpenAI's *GPT-OSS-20B*,
-Google's *Gemma-4-31B* (with CoT), Alibaba's Qwen3.6-35B-A3B.
+OpenAI's *GPT-OSS-20B*, NVIDIA's *Nemotron-3-Nano-30B-A3B*,
+Google's *Gemma-4-31B-IT* (with CoT), Alibaba's *Qwen3.6-35B-A3B*,
+Cohere's *North-Mini-Code-1.0*, Poolside's *Laguna-XS-2.1-FP8*.
 
 #### configs and scripts
 
@@ -111,4 +112,4 @@ Once being within a running container, bioRxiv feeds can be ingested
 by the `feeder.sh` script in the `srv` subdirectory.
 Then the web server can be started by the `server.sh` script located there too.
 
-**The project site is at [QuaDet](https://arxifter.quadet.com/) and its repository is hosted at [Codeberg](https://codeberg.org/msat/arxifter/).**
+**The project site is at [QuaDet](https://arxifter.quadet.com/) and its repository is hosted at [GitHub](https://github.com/queuine/arxifter).**

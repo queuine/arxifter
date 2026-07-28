@@ -46,25 +46,13 @@ from .spans.loader import (
 )
 
 
-def _get_suggestion_answer(answer):
-    article = None
-    if type(answer) in [list, tuple]:
-        if (
-            (len(answer) == 1)
-            and (type(answer[0]) is dict)
-        ):
-            article = answer[0]
-    elif type(answer) is dict:
-        article = answer
-
-    if article is None:
-        return [False, None, None]
-
-    is_suggestion = False
-    suggestion_key = None
+def _get_article_matches(article):
+    matches_key = None
+    matches_value = True
     for key, value in article.items():
-        for sugg_key in LLM_MATCHES_KEYS:
-            if str(key).lower().startswith(sugg_key):
+        for matches_key_test in LLM_MATCHES_KEYS:
+            if str(key).lower().startswith(matches_key_test):
+                matches_key = key
                 if (
                     (value is False)
                     or (
@@ -72,13 +60,51 @@ def _get_suggestion_answer(answer):
                         and value.lower() in FALSE_VALUES_STR
                     )
                 ):
-                    is_suggestion = True
-                    suggestion_key = key
-                    break
-        if is_suggestion is True:
+                    matches_value = False
+                break
+        if matches_key is not None:
             break
 
-    return [is_suggestion, article, suggestion_key]
+    return [matches_key, matches_value]
+
+
+def _regularize_answer(answer):
+    if type(answer) is dict:
+        answer = [answer]
+    if type(answer) not in [list, tuple]:
+        return []
+
+    answer = [article for article in answer if type(article) is dict]
+
+    regularized = []
+    has_matched = False
+    has_nonmatched = False
+    for article in answer:
+        matches_key, matches_value = _get_article_matches(article)
+        if has_matched or has_nonmatched:
+            if not matches_value:
+                # if here, the list has some surplus non-matching article
+                continue
+        if matches_value:
+            has_matched = True
+        else:
+            has_nonmatched = True
+
+        if matches_key is not None:
+            del article[matches_key]
+        if not matches_value:
+            article[LLM_SUGGESTION_KEY] = True
+
+        regularized.append(article)
+
+    if has_matched and has_nonmatched:
+        # if here, the list had both matching and non-matching articles
+        regularized = [
+            article for article in regularized
+            if LLM_SUGGESTION_KEY not in article.keys()
+        ]
+
+    return regularized
 
 
 def _get_article_rank(article):
@@ -270,12 +296,6 @@ def _get_article_path(conf, art_rank, art_subject, data_dir, feed_type):
     return art_path
 
 
-def _get_item_list(answer):
-    if type(answer) in [list, tuple]:
-        return list(answer)
-    return [answer]
-
-
 def _take_article_data(
     logger, article_path, article_subject, addendum, leave_keys
 ):
@@ -318,12 +338,12 @@ def _take_article_data(
     return article
 
 
-def _make_regular_response(
+def _make_response(
     conf, logger, answer, similar_articles, data_dir, feed_type
 ):
     response = []
 
-    for item in _get_item_list(answer):
+    for item in answer:
         art_rank_key = None
         with_parts = False
         if type(item) in [str, int]:
@@ -357,38 +377,6 @@ def _make_regular_response(
     return response
 
 
-def _make_suggestion_response(
-    conf,
-    logger,
-    suggestion_article,
-    similar_articles,
-    suggestion_key,
-    data_dir,
-    feed_type,
-):
-    art_rank_key, art_rank = _get_article_rank(suggestion_article)
-    art_rank, art_subject, title_key = _back_remap_article_rank(
-        art_rank, similar_articles, suggestion_article, logger
-    )
-    article_path = _get_article_path(
-        conf, art_rank, art_subject, data_dir, feed_type
-    )
-    if article_path is None:
-        return []
-
-    article = _take_article_data(
-        logger,
-        article_path,
-        art_subject,
-        suggestion_article,
-        [art_rank_key, suggestion_key, title_key],
-    )
-    if article is not None:
-        article[LLM_SUGGESTION_KEY] = True
-
-    return article if article is not None else []
-
-
 def form_response(
     conf, get_logger, answer, similar_articles, data_dir, feed_type
 ):
@@ -401,25 +389,21 @@ def form_response(
     * merging the the read articles with the LLM answer.
     """
     logger = get_logger(__name__)
-    is_suggestion, suggestion_article, suggestion_key = (
-        _get_suggestion_answer(answer)
-    )
 
-    if not is_suggestion:
-        return _make_regular_response(
-            conf,
-            logger,
-            answer,
-            similar_articles,
-            data_dir,
-            feed_type,
-        )
-    return _make_suggestion_response(
+    response = _make_response(
         conf,
         logger,
-        suggestion_article,
+        _regularize_answer(answer)[:conf["sifting"]["answer_max_count"]],
         similar_articles,
-        suggestion_key,
         data_dir,
         feed_type,
     )
+
+    if (
+        (len(response) == 1)
+        and (response[0].get(LLM_SUGGESTION_KEY, None) is True)
+    ):
+        # if here, it is a suggestion article
+        return response[0]
+
+    return response

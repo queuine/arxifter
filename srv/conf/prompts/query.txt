@@ -1,4 +1,4 @@
-The user's query:
+The user's query put in between the dashed lines:
 ---------------------
 {query_str}
 ---------------------

@@ -97,39 +97,99 @@ def _get_user_text(conf, query):
     )
 
 
-def _debug_response(conf, logger, response):
-    try:
-        logger.debug("\n".join(["response:", str(response)]))
-    except Exception:
-        pass
+def _get_reasoning_list(conf, logger, response):
+    reasonings = []
+
     try:
         if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
             for part in response.output:
                 if part.type == "reasoning":
                     for subpart in [
-                        [part.content, "reasoning:"],
-                        [part.summary, "reasoning summary:"],
+                        [part.content, "reasoning"],
+                        [part.summary, "reasoning_summary"],
                     ]:
                         if subpart[0] is None:
                             continue
-                        logger.debug("\n".join([
-                            subpart[1],
-                            *[
+
+                        reasonings.append({
+                            "name": subpart[1],
+                            "text": "\n".join([
                                 str(item.text) for item in subpart[0]
                                 if item is not None
-                            ],
-                        ]))
+                            ]),
+                        })
+
         elif conf["llms"]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
-            if hasattr(response.choices[0].message, "reasoning"):
+            for attr_name in [
+                "reasoning",
+                "reasoning_content",
+            ]:
+                if hasattr(response.choices[0].message, attr_name):
+                    reasonings.append({
+                        "name": attr_name,
+                        "text": str(
+                            getattr(response.choices[0].message, attr_name)
+                        ),
+                    })
+
+    except Exception as exc:
+        logger.warning("\n".join([
+            "could not extract the LLM reasoning",
+            str(exc),
+        ]))
+
+    return reasonings
+
+
+def _get_the_answer(conf, logger, response):
+    answer = ""
+    try:
+        if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
+            if hasattr(response, "output_text"):
+                answer = response.output_text
+        elif conf["llms"]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
+            if hasattr(response.choices[0].message, "content"):
+                answer = response.choices[0].message.content
+        if answer is None:
+            answer = ""
+        answer = str(answer).strip()
+
+        # some loose LLMs (hi, Gemma) sometimes put the actual answer
+        # into reasoning instead of putting it into the text/content fields
+        if not answer:
+            if conf["debugging"]["query_sifting"]:
                 logger.debug("\n".join([
-                    "reasoning:",
-                    str(response.choices[0].message.reasoning)
+                    "the actual answer part of the output was empty",
+                    "looking for an answer within the reasoning part",
                 ]))
-            if hasattr(response.choices[0].message, "reasoning_content"):
+            for reasoning in _get_reasoning_list(conf, logger, response):
+                if reasoning["text"]:
+                    answer = reasoning["text"].strip()
+                    if answer:
+                        return answer
+
+    except Exception as exc:
+        logger.warning("\n".join([
+            "cannot take the output part from the LLM answer",
+            str(exc),
+        ]))
+    return answer
+
+
+def _debug_response(conf, logger, response):
+    try:
+        logger.debug("\n".join(["response:", str(response)]))
+    except Exception:
+        pass
+
+    try:
+        for reasoning in _get_reasoning_list(conf, logger, response):
+            if reasoning["text"]:
                 logger.debug("\n".join([
-                    "reasoning content:",
-                    str(response.choices[0].message.reasoning_content)
+                    reasoning["name"].replace("_", " ") + ":",
+                    reasoning["text"],
                 ]))
+
     except Exception:
         logger.debug("could not display the LLM reasoning")
 
@@ -212,18 +272,7 @@ async def _exec_query_inner(conf, logger, querier, query_prompt):
     if conf["debugging"]["query_sifting"]:
         _debug_response(conf, logger, response)
 
-    answer = None
-    try:
-        if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
-            answer = str(response.output_text)
-        elif conf["llms"]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
-            answer = str(response.choices[0].message.content)
-    except Exception as exc:
-        logger.warning("\n".join([
-            "cannot take the output part from the LLM answer",
-            str(exc),
-        ]))
-    return answer
+    return _get_the_answer(conf, logger, response)
 
 
 async def exec_query(
