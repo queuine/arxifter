@@ -182,6 +182,16 @@ timeout = 120
 #   fits the user's query, as some models hesitate to do it;
 # * "asking_form" is "responses" or "chat-completions"
 
+# Runpod:
+# base_url = "path:../../ext/runpod/pods/arxifter/nemotron-3-nano-fp8-kv-fp8/001/pod.url"
+# asking_form = "chat-completions"
+# model_name = "nvidia/nemotron-3-nano-30b-a3b-fp8-kv-fp8"
+# ask_honest = false
+# base_url = "path:../../ext/runpod/pods/arxifter/laguna-xs-2.1-fp8-kv-fp8/001/pod.url"
+# asking_form = "chat-completions"
+# model_name = "poolside/laguna-xs-2.1-fp8-kv-fp8|think"
+# ask_honest = true
+
 # NVIDIA:
 # * inference via this provider is free of charge,
 #   but it is for testing purposes only;

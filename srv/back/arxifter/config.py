@@ -8,6 +8,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from .setting import (
+    SPEC_PATH_PREFIX,
+    CONFIG_ITEM_COMMENT,
     CONFIG_OTHER_LETTERS,
     NEW_DIRS_MODE,
     SESSION_CLUE_LEN_BASE,
@@ -432,6 +434,18 @@ def _fill_conf(conf, conf_path):
         ]:
             for item in itemlist:
                 conf[part][item] = str(conf_raw[part][item])
+                if conf[part][item].lower().startswith(SPEC_PATH_PREFIX):
+                    item_path = os.path.normpath(
+                        os.path.join(
+                            conf_dir,
+                            conf[part][item][len(SPEC_PATH_PREFIX):],
+                        )
+                    )
+                    with open(item_path, encoding="utf8") as fh:
+                        conf[part][item] = " ".join([
+                            line.strip() for line in fh
+                            if not line.startswith(CONFIG_ITEM_COMMENT)
+                        ]).strip()
 
         for part, itemlist in [
             ["ui", ["user_id", "storage_prefix"]],

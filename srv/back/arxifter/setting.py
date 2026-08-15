@@ -15,6 +15,7 @@ import numpy as np
 # general use
 ENV_CONF_PATH = "ARXIFTER_CONFIG_PATH"
 NEW_DIRS_MODE = 0o755
+SPEC_PATH_PREFIX = "path:"
 
 # web server
 APP_NAME_WEB_IFCE = "arxifter-web-ifce"
@@ -109,6 +110,7 @@ ACTIVE_DATA_DIR_LISTING = re.compile('^[\\d]{4}_[\\d]{4}_[\\d]{4}$')
 ATTEMPT_COUNT_DATA_DIR = 3
 
 # config, incl. its presentation to frontend
+CONFIG_ITEM_COMMENT = "#"
 CONFIG_OTHER_LETTERS = [".", "_", "-"]
 JS_FABRIC_PREFIX = "get_fabric_"
 INDENT_SIZE = 4

@@ -7,7 +7,17 @@ import os
 from pathlib import Path
 import datetime as dt
 
+from .setting import SPEC_PATH_PREFIX
 from .guests import list_guest_id_files
+
+
+def _get_actual_key(key_path):
+    key_str = Path(key_path).read_text(encoding="utf8").strip()
+    if key_str.startswith(SPEC_PATH_PREFIX):
+        key_str = Path(
+            key_str[len(SPEC_PATH_PREFIX):]
+        ).read_text(encoding="utf8").strip()
+    return key_str
 
 
 def _check_user_id_is_guest(conf, user_id, curr_dt):
@@ -32,9 +42,7 @@ def _check_user_id_is_guest(conf, user_id, curr_dt):
 def _get_llm_key_guest(conf, user_id):
     curr_dt = dt.datetime.now(dt.UTC)
     if _check_user_id_is_guest(conf, user_id, curr_dt):
-        return Path(
-            conf["keys"]["guest_user"]["path"]
-        ).read_text(encoding="utf8").strip()
+        return _get_actual_key(conf["keys"]["guest_user"]["path"])
 
     return None
 
@@ -44,7 +52,7 @@ def _get_key_found_user(conf, key_file_name):
         conf["keys"]["regular_users"]["path"],
         key_file_name
     )
-    return Path(key_path).read_text(encoding="utf8").strip()
+    return _get_actual_key(key_path)
 
 
 def _get_llm_key_user(conf, user_id=None):
