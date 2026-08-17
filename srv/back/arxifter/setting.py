@@ -61,6 +61,15 @@ ARTICLE_KEY_RANK_VAR = ["art", "num"]
 # non-matching answers
 LLM_MATCHES_KEYS = ["match"]
 LLM_SUGGESTION_KEY = "instead"
+# default value for the 'matches' key
+ARTICLE_KEY_MATCHES_DEFAULT = "matches"
+# starts of the 'reasoning' key
+ARTICLE_KEY_REASON_VAR = ["reason"]
+# pattern for the 'matches' field mixed with the 'reasoning' field
+ARTICLE_VALUE_REASON_MIXED = re.compile(
+    ARTICLE_KEY_MATCHES_DEFAULT + r":([\s]*)false([;]?)([\s]*)$",
+    re.I,
+)
 # key parts for title start in LLM answers
 LLM_TITLE_START_KEYS = ["title", "prefix", "start"]
 LLM_TITLE_START_REGS = [

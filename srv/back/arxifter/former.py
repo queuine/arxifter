@@ -18,6 +18,9 @@ from difflib import SequenceMatcher
 
 from .setting import (
     LLM_MATCHES_KEYS,
+    ARTICLE_KEY_MATCHES_DEFAULT,
+    ARTICLE_KEY_REASON_VAR,
+    ARTICLE_VALUE_REASON_MIXED,
     FALSE_VALUES_STR,
     LLM_SUGGESTION_KEY,
     LLM_TITLE_START_KEYS,
@@ -68,6 +71,24 @@ def _get_article_matches(article):
     return [matches_key, matches_value]
 
 
+def _check_split_reason(article):
+    # Laguna-XS-2.1 sometimes botches the JSON output;
+    # here fixing one of the seen mixups.
+    # It is the 'matches: false;' field wrongly included
+    # as a part of the textual value of the 'reason' field.
+    for key, value in article.items():
+        for key_var in ARTICLE_KEY_REASON_VAR:
+            if str(key).lower().startswith(key_var):
+                mixed_end = ARTICLE_VALUE_REASON_MIXED.search(value)
+                if mixed_end is None:
+                    continue
+                article[key] = value[:mixed_end.start()].rstrip()
+                article[ARTICLE_KEY_MATCHES_DEFAULT] = False
+                return ARTICLE_KEY_MATCHES_DEFAULT
+
+    return None
+
+
 def _regularize_answer(answer):
     if type(answer) is dict:
         answer = [answer]
@@ -81,6 +102,12 @@ def _regularize_answer(answer):
     has_nonmatched = False
     for article in answer:
         matches_key, matches_value = _get_article_matches(article)
+
+        if matches_key is None:
+            matches_key = _check_split_reason(article)
+            if matches_key is not None:
+                matches_value = article[matches_key]
+
         if has_matched or has_nonmatched:
             if not matches_value:
                 # if here, the list has some surplus non-matching article
