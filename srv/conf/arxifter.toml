@@ -217,6 +217,8 @@ ask_honest = false
 # ask_honest = false
 # model_name = "poolside/laguna-xs-2.1|think"
 # ask_honest = true
+# model_name = "meta/muse-glimmer-30b"
+# ask_honest = false
 
 # Fireworks AI:
 # base_url = "https://api.fireworks.ai/inference/v1"

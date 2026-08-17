@@ -75,7 +75,10 @@ This middle range of LLMs provides some models that work reasonably well as arχ
 The following middle-range open-weights LLMs have been found to be sufficient:
 OpenAI's *GPT-OSS-20B*, NVIDIA's *Nemotron-3-Nano-30B-A3B*,
 Google's *Gemma-4-31B-IT* (with CoT), Alibaba's *Qwen3.6-35B-A3B*,
-Cohere's *North-Mini-Code-1.0*, Poolside's *Laguna-XS-2.1-FP8*.
+Cohere's *North-Mini-Code-1.0*, Poolside's *Laguna-XS-2.1-FP8*,
+Meta's *Muse-Glimmer-30B*.
+
+Independent testing of individual LLMs can be done via use of the [vellmi](https://github.com/queuine/vellmi) system.
 
 #### configs and scripts
 
