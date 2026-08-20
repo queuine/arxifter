@@ -465,6 +465,7 @@ def _fill_conf(conf, conf_path):
                         )
 
         for part, itemlist in [
+            ["users", ["regular_users", "guest_ids"]],
             ["access", [
                 "user_allow_list",
                 "user_block_list",
@@ -484,7 +485,6 @@ def _fill_conf(conf, conf_path):
                 "asking_think",
                 "asking_cot",
             ]],
-            ["users", ["regular_users", "guest_ids"]],
             ["keys", ["regular_users", "guest_user"]],
             ["mocking", ["answers_dir"]],
         ]:
@@ -498,6 +498,8 @@ def _fill_conf(conf, conf_path):
 
         for part, itemlist in [
             ["server", ["behind_proxy"]],
+            ["users", ["with_guest"]],
+            ["queries", ["check_for_guests", "check_for_users"]],
             ["access", [
                 "user_default_allow",
                 "user_show_blocked_ip",
@@ -508,7 +510,6 @@ def _fill_conf(conf, conf_path):
             ["feeds", ["allow_combinations"]],
             ["data", ["pruning"]],
             ["llms", ["ask_honest"]],
-            ["users", ["with_guest"]],
             ["mocking", ["to_mock"]],
             ["debugging", ["query_sifting", "feed_ingest"]],
         ]:
@@ -543,11 +544,11 @@ def _fill_conf(conf, conf_path):
 
         for part, itemlist in [
             ["server", ["port"]],
+            ["users", ["guest_span"]],
             ["data", ["kept_days", "depo_depth", "depo_renew"]],
             ["embed", ["dense_embed_dim", "static_embed_dim"]],
             ["sifting", ["answer_max_count"]],
             ["llms", ["timeout"]],
-            ["users", ["guest_span"]],
         ]:
             for item in itemlist:
                 conf[part][item] = conf_raw[part][item]
@@ -641,6 +642,8 @@ def get_conf(conf_env_name):
     """
     conf = {
         "server": {},
+        "users": {},
+        "queries": {},
         "access": {},
         "view": {},
         "backlink": {},
@@ -653,7 +656,6 @@ def get_conf(conf_env_name):
         "sifting": {},
         "prompts": {},
         "llms": {},
-        "users": {},
         "keys": {},
         "mocking": {},
         "debugging": {},

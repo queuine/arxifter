@@ -17,6 +17,24 @@ address = "0.0.0.0"
 # static files are assumed to be served by that proxy;
 behind_proxy = false
 
+[users]
+# if a deployment is to be w/o allowing guests,
+# the "with_guest" value has to be set to false
+with_guest = true
+# session span (in hours) of guest users
+guest_span = 24
+# where ids of regular and guest users are stored;
+# users are set by ids only (i.e. not by name/password pairs);
+regular_users = "../users/users.list"
+guest_ids = "../users/guest/"
+
+[queries]
+# whether queries should be checked to not contain prompt injection;
+# to do the checks for queries sent by guests:
+check_for_guests = true
+# to do the checks for queries sent by regular users:
+check_for_users = false
+
 [access]
 # access rules based on client IP address:
 # the allow-list is checked first, making contained IP addresses allowed;
@@ -231,17 +249,6 @@ ask_honest = false
 # asking_form = "chat-completions"
 # model_name = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
 # ask_honest = false
-
-[users]
-# if a deployment is to be w/o allowing guests,
-# the "with_guest" value has to be set to false
-with_guest = true
-# session span (in hours) of guest users
-guest_span = 24
-# where ids of regular and guest users are stored;
-# users are set by ids only (i.e. not by name/password pairs);
-regular_users = "../keys/users.list"
-guest_ids = "../keys/guest/"
 
 [keys]
 # locations of LLM api keys;

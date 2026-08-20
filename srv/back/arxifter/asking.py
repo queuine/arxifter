@@ -18,6 +18,10 @@ from .utils import (
     is_access_ok,
 )
 from .keys import get_user_api_key
+from .checker import (
+    check_query,
+    adjust_query,
+)
 from .querier import exec_query
 from .answerer import parse_llm_answer
 from .former import form_response
@@ -146,6 +150,21 @@ async def answer_query_inner(
             "ok": False,
             "message": err_message,
         }
+
+    query_checking = (
+        (is_guest and conf["queries"]["check_for_guests"])
+        or ((not is_guest) and conf["queries"]["check_for_users"])
+    )
+
+    if query_checking:
+        check_status, check_message = check_query(query_text)
+        if not check_status:
+            logger.info(f"disallowed query: {check_message}")
+            return {
+                "ok": False,
+                "message": check_message,
+            }
+        query_text = adjust_query(query_text)
 
     llm_answer = None
     got_answer = False
