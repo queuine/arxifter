@@ -201,6 +201,12 @@ timeout = 120
 # * "asking_form" is "responses" or "chat-completions"
 
 # Runpod:
+# * these pods are expected to be run via the vellmi system;
+#   https://github.com/queuine/vellmi
+# base_url = "path:../../ext/runpod/pods/arxifter/gpt-oss-20b-kv-bf16/001/pod.url"
+# asking_form = "chat-completions"
+# model_name = "openai/gpt-oss-20b-kv-bf16"
+# ask_honest = true
 # base_url = "path:../../ext/runpod/pods/arxifter/nemotron-3-nano-fp8-kv-fp8/001/pod.url"
 # asking_form = "chat-completions"
 # model_name = "nvidia/nemotron-3-nano-30b-a3b-fp8-kv-fp8"
@@ -210,21 +216,11 @@ timeout = 120
 # model_name = "poolside/laguna-xs-2.1-fp8-kv-fp8|think"
 # ask_honest = true
 
-# NVIDIA:
-# * inference via this provider is free of charge,
-#   but it is for testing purposes only;
-# base_url = "https://integrate.api.nvidia.com/v1"
-# asking_form = "chat-completions"
-# model_name = "openai/gpt-oss-20b"
-# ask_honest = false
-# model_name = "nvidia/nemotron-3-nano-30b-a3b"
-# ask_honest = false
-
 # OpenRouter:
 base_url = "https://openrouter.ai/api/v1"
 asking_form = "chat-completions"
 # model_name = "openai/gpt-oss-20b"
-# ask_honest = false
+# ask_honest = true
 model_name = "nvidia/nemotron-3-nano-30b-a3b"
 ask_honest = false
 # model_name = "google/gemma-4-31b-it|cot"
@@ -236,18 +232,6 @@ ask_honest = false
 # model_name = "poolside/laguna-xs-2.1|think"
 # ask_honest = true
 # model_name = "meta/muse-glimmer-30b"
-# ask_honest = false
-
-# Fireworks AI:
-# base_url = "https://api.fireworks.ai/inference/v1"
-# asking_form = "responses"
-# model_name = "fireworks/gpt-oss-20b"
-# ask_honest = false
-
-# Nebius:
-# base_url = "https://api.tokenfactory.nebius.com/v1/"
-# asking_form = "chat-completions"
-# model_name = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
 # ask_honest = false
 
 [keys]
