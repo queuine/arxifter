@@ -21,6 +21,7 @@ from .setting import (
     ARTICLE_KEY_MATCHES_DEFAULT,
     ARTICLE_KEY_REASON_VAR,
     ARTICLE_VALUE_REASON_MIXED,
+    ARTICLE_VALUE_REASON_ENDING,
     FALSE_VALUES_STR,
     LLM_SUGGESTION_KEY,
     LLM_TITLE_START_KEYS,
@@ -72,17 +73,24 @@ def _get_article_matches(article):
 
 
 def _check_split_reason(article):
-    # Laguna-XS-2.1 sometimes botches the JSON output;
-    # here fixing one of the seen mixups.
-    # It is the 'matches: false;' field wrongly included
-    # as a part of the textual value of the 'reason' field.
+    # Some newer models sometimes botch the JSON output;
+    # here fixing one mode of the seen mixups.
+    # It is the "matches: false" field wrongly included
+    # as a part of the textual value of the "reason" field.
+    # The actual inclusion was seen with various non-word parts
+    # around the embedded "matches: false" item.
     for key, value in article.items():
         for key_var in ARTICLE_KEY_REASON_VAR:
             if str(key).lower().startswith(key_var):
                 mixed_end = ARTICLE_VALUE_REASON_MIXED.search(value)
                 if mixed_end is None:
                     continue
-                article[key] = value[:mixed_end.start()].rstrip()
+                reason_new = value[:mixed_end.start()].rstrip()
+                reason_end = (
+                    "" if reason_new.endswith(ARTICLE_VALUE_REASON_ENDING)
+                    else ARTICLE_VALUE_REASON_ENDING
+                )
+                article[key] = reason_new + reason_end
                 article[ARTICLE_KEY_MATCHES_DEFAULT] = False
                 return ARTICLE_KEY_MATCHES_DEFAULT
 

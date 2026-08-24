@@ -73,7 +73,8 @@ the middle range of them, cca 20 to 40 billion of LLM parameters.
 
 This middle range of LLMs provides some models that work reasonably well as arχifter sifters.
 The following middle-range open-weights LLMs have been found to be sufficient:
-OpenAI's *GPT-OSS-20B*, NVIDIA's *Nemotron-3-Nano-30B-A3B*,
+OpenAI's *GPT-OSS-20B*, NVIDIA's *Nemotron-3-Nano-30B-A3B* and
+*Nemotron-3.5-Lightning-30B-A3B* (with DSpark),
 Google's *Gemma-4-31B-IT* (with CoT), Alibaba's *Qwen3.6-35B-A3B*,
 Cohere's *North-Mini-Code-1.0*, Poolside's *Laguna-XS-2.1-FP8*,
 Meta's *Muse-Glimmer-30B*.

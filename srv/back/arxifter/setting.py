@@ -67,9 +67,17 @@ ARTICLE_KEY_MATCHES_DEFAULT = "matches"
 ARTICLE_KEY_REASON_VAR = ["reason"]
 # pattern for the 'matches' field mixed with the 'reasoning' field
 ARTICLE_VALUE_REASON_MIXED = re.compile(
-    ARTICLE_KEY_MATCHES_DEFAULT + r":([\s]*)false([;]?)([\s]*)$",
+    "".join([
+        r"([_\W]*)",
+        ARTICLE_KEY_MATCHES_DEFAULT,
+        r"([\W]*):([\W]*)",
+        r"false",
+        r"([_\W]*)",
+        r"$",
+    ]),
     re.I,
 )
+ARTICLE_VALUE_REASON_ENDING = "."
 # key parts for title start in LLM answers
 LLM_TITLE_START_KEYS = ["title", "prefix", "start"]
 LLM_TITLE_START_REGS = [

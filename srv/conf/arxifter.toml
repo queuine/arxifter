@@ -215,6 +215,10 @@ timeout = 120
 # asking_form = "chat-completions"
 # model_name = "poolside/laguna-xs-2.1-fp8-kv-fp8|think"
 # ask_honest = true
+# base_url = "path:../../ext/runpod/pods/arxifter/nemotron-3.5-lightning-30b-a3b-with-dspark-nvfp4-kv-bfloat16/001/pod.url"
+# asking_form = "chat-completions"
+# model_name = "nvidia/nemotron-3.5-lightning-30b-a3b-with-dspark-nvfp4-kv-bfloat16"
+# ask_honest = true
 
 # OpenRouter:
 base_url = "https://openrouter.ai/api/v1"
@@ -233,6 +237,8 @@ ask_honest = false
 # ask_honest = true
 # model_name = "meta/muse-glimmer-30b"
 # ask_honest = false
+# model_name = "nvidia/nemotron-3.5-lightning"
+# ask_honest = true
 
 [keys]
 # locations of LLM api keys;
