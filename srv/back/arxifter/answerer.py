@@ -3,7 +3,7 @@
 Attempts to parse LLM answers on user queries.
 """
 
-import json
+import re, json
 
 from json_repair import repair_json
 
@@ -12,7 +12,63 @@ from .setting import (
     JSON_END_REMOVALS,
     JSON_FLANK_START,
     JSON_FLANK_END,
+    ARTICLE_VALUE_REASON_ENDING,
 )
+
+ANSWER_ARTICLE_KEY_ARTNUM = "artnum"
+ANSWER_ARTICLE_KEY_TITLE_PREFIX = "title_prefix"
+ANSWER_ARTICLE_KEY_REASON = "reason"
+ANSWER_ARTICLE_KEY_MATCHES = "matches"
+ANSWER_ARTICLE_KEYS = [
+    ANSWER_ARTICLE_KEY_ARTNUM,
+    ANSWER_ARTICLE_KEY_TITLE_PREFIX,
+    ANSWER_ARTICLE_KEY_REASON,
+    ANSWER_ARTICLE_KEY_MATCHES,
+]
+ANSWER_LINE_EMPTY = re.compile("".join([
+    r"^",
+    r"([^\w\d]*)",
+    r"$",
+]), re.I | re.U)
+ANSWER_LINE_FIELD = re.compile("".join([
+    r"^",
+    r"(?:[_\W]*)",
+    r"(",
+    r"|".join([
+        r"(?:" + line_key + r"(?:[\w]*))"
+        for line_key in ANSWER_ARTICLE_KEYS
+    ]),
+    r")",
+    r"(?:[\W]*)",
+    r":",
+    r"(?:[^\w\d]*)",
+    r"((?:[\w\d])(?:.*))",
+    r"$",
+]), re.I | re.U)
+ANSWER_LINE_KEY = re.compile("".join([
+    r"^",
+    r"|".join([
+        line_key for line_key in ANSWER_ARTICLE_KEYS
+    ]),
+]), re.I | re.U)
+ANSWER_LINE_VALUE_NUMBER = re.compile("".join([
+    r"^([\d]+)(?:[^\d]*)$",
+]), re.I | re.U)
+ANSWER_LINE_VALUE_TRUE = "true"
+ANSWER_LINE_VALUE_FALSE = "false"
+ANSWER_LINE_VALUE_BOOLEAN = re.compile("".join([
+    r"^(",
+    ANSWER_LINE_VALUE_TRUE,
+    r"|",
+    ANSWER_LINE_VALUE_FALSE,
+    r")(?:.*)$",
+]), re.I | re.U)
+ANSWER_LINE_VALUE_TEXT = re.compile("".join([
+    r"^(.+)(?:[^\d\w]*)$",
+]), re.I | re.U)
+ANSWER_LINE_VALUE_ENDING = re.compile("".join([
+    r"(?:[^\d\w]*)$",
+]), re.I | re.U)
 
 
 def _simple_repairing(answer):
@@ -62,6 +118,99 @@ def _thorough_repairing(answer):
     return repaired_json
 
 
+def _last_data_in_text(answer):
+    # some provider/LLMs services return the single nonmatching
+    # article without its data put into JSON list/structure;
+    article = {
+        art_key: None
+        for art_key in ANSWER_ARTICLE_KEYS
+    }
+
+    for line in reversed(answer.splitlines()):
+        all_filled = True
+        for art_key, art_val in article.items():
+            if art_val is None:
+                all_filled = False
+                break
+        if all_filled:
+            break
+
+        if ANSWER_LINE_EMPTY.match(line):
+            continue
+        line_field = ANSWER_LINE_FIELD.match(line)
+        if line_field is None:
+            break
+        if len(line_field.groups()) != 2:
+            # this should not occur
+            continue
+        line_key = ANSWER_LINE_KEY.search(line_field.group(1))
+        if line_key is None:
+            # this should not occur
+            continue
+        line_key = line_key.group(0).lower()
+
+        if line_key == ANSWER_ARTICLE_KEY_ARTNUM:
+            line_value = ANSWER_LINE_VALUE_NUMBER.match(line_field.group(2))
+            if line_value is None:
+                continue
+            if len(line_value.groups()) != 1:
+                # this should not occur
+                continue
+            try:
+                article[line_key] = int(line_value.group(1))
+            except Exception:
+                # this should not occur
+                pass
+            continue
+
+        if line_key == ANSWER_ARTICLE_KEY_MATCHES:
+            line_value = ANSWER_LINE_VALUE_BOOLEAN.match(line_field.group(2))
+            if line_value is None:
+                continue
+            if len(line_value.groups()) != 1:
+                # this should not occur
+                continue
+            item_value = line_value.group(1).lower()
+            if item_value == ANSWER_LINE_VALUE_TRUE:
+                article[line_key] = True
+            elif item_value == ANSWER_LINE_VALUE_FALSE:
+                article[line_key] = False
+            else:
+                # this should not occur
+                pass
+            continue
+
+        line_value = ANSWER_LINE_VALUE_TEXT.match(line_field.group(2))
+        if line_value is None:
+            continue
+        if len(line_value.groups()) != 1:
+            # this should not occur
+            continue
+        item_value = line_value.group(1)
+        item_end = ""
+        if line_key == ANSWER_ARTICLE_KEY_REASON:
+            line_ending = ANSWER_LINE_VALUE_ENDING.search(item_value)
+            if line_ending is not None:
+                item_value = item_value[:line_ending.start()]
+            if not item_value:
+                continue
+            if not item_value.endswith(ARTICLE_VALUE_REASON_ENDING):
+                item_end = ARTICLE_VALUE_REASON_ENDING
+        article[line_key] = item_value + item_end
+
+    if (
+        (article[ANSWER_ARTICLE_KEY_ARTNUM] is None)
+        and (article[ANSWER_ARTICLE_KEY_TITLE_PREFIX] is None)
+    ):
+        return None
+
+    for art_key in ANSWER_ARTICLE_KEYS:
+        if article[art_key] is None:
+            del article[art_key]
+
+    return json.dumps([article])
+
+
 def parse_llm_answer(conf, get_logger, answer):
     """
     Tries to parse the LLM answer:
@@ -92,6 +241,11 @@ def parse_llm_answer(conf, get_logger, answer):
         [
             _thorough_repairing,
             "LLM answer was a more broken JSON (repaired by json_repair)",
+            False,
+        ],
+        [
+            _last_data_in_text,
+            "some data salvaged from the answer lacking JSON format",
             True,
         ],
     ]

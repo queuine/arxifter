@@ -75,7 +75,7 @@ ARTICLE_VALUE_REASON_MIXED = re.compile(
         r"([_\W]*)",
         r"$",
     ]),
-    re.I,
+    re.I | re.U,
 )
 ARTICLE_VALUE_REASON_ENDING = "."
 # key parts for title start in LLM answers
