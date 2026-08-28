@@ -89,8 +89,10 @@ LLM_TITLE_START_REGS = [
 # repairing the naswers
 JSON_START_REMOVALS = ["```json", "```"]
 JSON_END_REMOVALS = ["```"]
-JSON_FLANK_START = "```json"
-JSON_FLANK_END = "```"
+JSON_FLANKS = [
+    [r"```json", r"```"],
+    [r"\boxed{", r"}"],
+]
 ARTICLE_RECOGNIZING_THRESHOLD = 0.1
 
 # sifting through last counts vs. last days
