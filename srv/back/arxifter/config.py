@@ -270,6 +270,14 @@ def _check_llm_api_form(conf_llm):
         ]))
 
 
+def _check_llm_cert(conf_llm):
+    if not conf_llm["cert_path"]["value"]:
+        return
+    _check_conf_path_access(
+        conf_llm["cert_path"], is_dir=False, writable=False
+    )
+
+
 def _setup_prompt_parts(conf):
     conf["prompts"]["main_part"]["content"] = _read_prompt_template(
         conf["prompts"]["main_part"]["path"]
@@ -376,6 +384,7 @@ def _complete_conf(conf):
     _setup_prompt_parts(conf)
 
     _check_llm_api_form(conf["llms"])
+    _check_llm_cert(conf["llms"])
 
     _set_model_dirs(conf["embed"])
 
@@ -465,6 +474,22 @@ def _fill_conf(conf, conf_path):
                         )
 
         for part, itemlist in [
+            ["llms", ["cert_path"]],
+        ]:
+            for item in itemlist:
+                conf[part][item] = {
+                    "path": None,
+                }
+                try:
+                    conf[part][item]["value"] = conf_raw[part][item]
+                except Exception:
+                    conf[part][item]["value"] = None
+                if conf[part][item]["value"]:
+                    conf[part][item]["path"] = os.path.normpath(
+                        os.path.join(conf_dir, conf[part][item]["value"])
+                    )
+
+        for part, itemlist in [
             ["users", ["regular_users", "guest_ids"]],
             ["access", [
                 "user_allow_list",
@@ -495,6 +520,20 @@ def _fill_conf(conf, conf_path):
                         os.path.join(conf_dir, conf_raw[part][item])
                     ),
                 }
+
+        for part, itemlist in [
+            ["llms", ["cert_noname"]],
+        ]:
+            for item in itemlist:
+                try:
+                    conf[part][item] = conf_raw[part][item]
+                except Exception:
+                    conf[part][item] = False
+                if type(conf[part][item]) is not bool:
+                    raise OSError(" ".join([
+                        f"configuration: {part}/{item} has to be a boolean"
+                        "if it is set"
+                    ]))
 
         for part, itemlist in [
             ["server", ["behind_proxy"]],

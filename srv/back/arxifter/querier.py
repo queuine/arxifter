@@ -9,7 +9,7 @@ Some inference models have issues with returning the artnum correctly, thus:
   so that it is possible to check whether they provided the artnums correctly;
   (only starts of titles are asked for to not slow it too much).
 """
-import asyncio, json, traceback
+import asyncio, json, traceback, ssl
 
 import httpx
 from openai import AsyncOpenAI
@@ -290,12 +290,23 @@ async def exec_query(
     """
     logger = get_logger(__name__)
 
-    async with httpx.AsyncClient(
-        limits=httpx.Limits(
+    http_client_params = {
+        "limits": httpx.Limits(
             max_connections=LLM_ASKING_MAX_CONN,
             max_keepalive_connections=LLM_ASKING_MAX_CONN_KA,
         ),
-        timeout=conf["llms"]["timeout"],
+        "timeout": conf["llms"]["timeout"],
+    }
+
+    if conf["llms"]["cert_path"]["value"]:
+        ssl_context = ssl.create_default_context()
+        ssl_context.load_verify_locations(conf["llms"]["cert_path"]["path"])
+        if conf["llms"]["cert_noname"]:
+            ssl_context.check_hostname = False
+        http_client_params["verify"] = ssl_context
+
+    async with httpx.AsyncClient(
+        **http_client_params
     ) as http_client:
         querier = _get_querier(conf, api_key, http_client)
 
