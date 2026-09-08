@@ -69,17 +69,18 @@ it makes arχifter open to many LLM systems and models.
 It is advisable to use the weakest LLMs that are still capable to do
 the respective work, so that the amount of consumed resources is as small as possible.
 Regarding the counts of parameters of LLMs, the point of interest here is
-the middle range of them, cca 20 to 40 billion of LLM parameters.
+the middle range of them, below 40 billion of LLM parameters.
 
 This middle range of LLMs provides some models that work reasonably well as arχifter sifters.
 The following middle-range open-weights LLMs have been found to be sufficient:
 OpenAI's *GPT-OSS-20B*, NVIDIA's *Nemotron-3-Nano-30B-A3B* and
 *Nemotron-3.5-Lightning-30B-A3B* (with DSpark),
-Google's *Gemma-4-31B-IT* (with CoT), Alibaba's *Qwen3.6-35B-A3B*,
-Cohere's *North-Mini-Code-1.0*, Poolside's *Laguna-XS-2.1-FP8*,
-Meta's *Muse-Glimmer-30B*.
+Google's *Gemma-4-31B-IT* (reasoning), Alibaba's *Qwen3.6-35B-A3B*,
+Cohere's *North-Mini-Code-1.0*, Poolside's *Laguna-XS-2.1-FP8* (reasoning),
+Meta's *Muse-Glimmer-30B*, Mistral's *Devstral-Small-2-24B-Instruct-2512* (CoT),
+IBM's *Granite-4.2-8B*.
 
-Independent testing of individual LLMs can be done via use of the [vellmi](https://github.com/queuine/vellmi) system.
+Independent use of individual LLMs can be done via the [vellmi](https://github.com/queuine/vellmi) system.
 
 #### configs and scripts
 
