@@ -78,7 +78,7 @@ OpenAI's *GPT-OSS-20B*, NVIDIA's *Nemotron-3-Nano-30B-A3B* and
 Google's *Gemma-4-31B-IT* (reasoning), Alibaba's *Qwen3.6-35B-A3B*,
 Cohere's *North-Mini-Code-1.0*, Poolside's *Laguna-XS-2.1-FP8* (reasoning),
 Meta's *Muse-Glimmer-30B*, Mistral's *Devstral-Small-2-24B-Instruct-2512* (CoT),
-IBM's *Granite-4.2-8B*.
+IBM's *Granite-4.2-8B*, Nex-AGI's *Nex-N2.5-Mini*.
 
 Independent use of individual LLMs can be done via the [vellmi](https://github.com/queuine/vellmi) system.
 

@@ -232,6 +232,7 @@ async def answer_query_inner(
             api_key,
             get_logger,
             subject_spec,
+            is_guest,
         )
         if llm_answer is not None:
             got_answer = True

@@ -286,13 +286,12 @@ def _setup_prompt_parts(conf):
         str(conf["sifting"]["answer_max_count"]),
     )
 
-    conf["prompts"]["asking_honest"]["content"] = _read_prompt_template(
-        conf["prompts"]["asking_honest"]["path"]
-    ) if conf["llms"]["ask_honest"] else ""
-    if conf["prompts"]["asking_honest"]["content"] != "":
-        conf["prompts"]["asking_honest"]["content"] = (
-            "\n" + conf["prompts"]["asking_honest"]["content"]
+    conf["prompts"]["asking_honest"]["content"] = "\n".join([
+        "",
+        _read_prompt_template(
+            conf["prompts"]["asking_honest"]["path"]
         )
+    ])
 
     conf["prompts"]["query_part"]["content"] = _read_prompt_template(
         conf["prompts"]["query_part"]["path"]
@@ -383,8 +382,9 @@ def _complete_conf(conf):
 
     _setup_prompt_parts(conf)
 
-    _check_llm_api_form(conf["llms"])
-    _check_llm_cert(conf["llms"])
+    for llms_use in ["llms-users", "llms-guests"]:
+        _check_llm_api_form(conf[llms_use])
+        _check_llm_cert(conf[llms_use])
 
     _set_model_dirs(conf["embed"])
 
@@ -429,9 +429,15 @@ def _complete_conf(conf):
         _check_conf_path_access(conf["mocking"]["answers_dir"], is_dir=True)
 
 
-def _fill_conf(conf, conf_path):
-    conf_dir = os.path.dirname(conf_path)
+def _read_conf(conf_path):
     conf_raw = _read_conf_raw(conf_path)
+    conf_raw["llms-users"] = conf_raw["llms"]["users"]
+    conf_raw["llms-guests"] = conf_raw["llms"]["guests"]
+    return conf_raw
+
+
+def _fill_conf(conf, conf_raw, conf_path):
+    conf_dir = os.path.dirname(conf_path)
     try:
         for part, itemlist in [
             ["server", ["header_origin", "address"]],
@@ -439,7 +445,8 @@ def _fill_conf(conf, conf_path):
             ["backlink", ["name", "link", "title"]],
             ["feeds", ["default_subject"]],
             ["embed", ["dense_embed_model", "static_embed_model"]],
-            ["llms", ["model_name", "base_url", "asking_form"]],
+            ["llms-users", ["model_name", "base_url", "asking_form"]],
+            ["llms-guests", ["model_name", "base_url", "asking_form"]],
         ]:
             for item in itemlist:
                 conf[part][item] = str(conf_raw[part][item])
@@ -474,7 +481,8 @@ def _fill_conf(conf, conf_path):
                         )
 
         for part, itemlist in [
-            ["llms", ["cert_path"]],
+            ["llms-users", ["cert_path"]],
+            ["llms-guests", ["cert_path"]],
         ]:
             for item in itemlist:
                 conf[part][item] = {
@@ -522,7 +530,8 @@ def _fill_conf(conf, conf_path):
                 }
 
         for part, itemlist in [
-            ["llms", ["cert_noname"]],
+            ["llms-users", ["cert_noname"]],
+            ["llms-guests", ["cert_noname"]],
         ]:
             for item in itemlist:
                 try:
@@ -548,7 +557,6 @@ def _fill_conf(conf, conf_path):
             ["notices", ["note_users_html"]],
             ["feeds", ["allow_combinations"]],
             ["data", ["pruning"]],
-            ["llms", ["ask_honest"]],
             ["mocking", ["to_mock"]],
             ["debugging", ["query_sifting", "feed_ingest"]],
         ]:
@@ -695,12 +703,19 @@ def get_conf(conf_env_name):
         "sifting": {},
         "prompts": {},
         "llms": {},
+        "llms-users": {},
+        "llms-guests": {},
         "keys": {},
         "mocking": {},
         "debugging": {},
     }
     try:
-        _fill_conf(conf, _get_conf_path(conf_env_name))
+        conf_path = _get_conf_path(conf_env_name)
+        _fill_conf(
+            conf,
+            _read_conf(conf_path),
+            conf_path,
+        )
         _add_to_conf(conf)
         _complete_conf(conf)
     except Exception as exc:

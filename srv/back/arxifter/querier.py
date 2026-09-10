@@ -33,10 +33,10 @@ from .setting import (
 from .mocking import get_mocked_answer
 
 
-def _get_querier(conf, api_key, http_client):
+def _get_querier(conf, api_key, http_client, llms_use):
     additional_params = {}
-    if conf["llms"]["base_url"] != "":
-        additional_params["base_url"] = conf["llms"]["base_url"]
+    if conf[llms_use]["base_url"] != "":
+        additional_params["base_url"] = conf[llms_use]["base_url"]
 
     return {
         "client": AsyncOpenAI(
@@ -46,7 +46,7 @@ def _get_querier(conf, api_key, http_client):
             timeout=conf["llms"]["timeout"],
             **additional_params,
         ),
-        "model": conf["llms"]["model_name"].split(LLM_NAME_SEP)[0],
+        "model": conf[llms_use]["model_name"].split(LLM_NAME_SEP)[0],
     }
 
 
@@ -97,11 +97,11 @@ def _get_user_text(conf, query):
     )
 
 
-def _get_reasoning_list(conf, logger, response):
+def _get_reasoning_list(conf, logger, response, llms_use):
     reasonings = []
 
     try:
-        if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
+        if conf[llms_use]["asking_form"] == LLM_API_FORM_RESPONSES:
             for part in response.output:
                 if part.type == "reasoning":
                     for subpart in [
@@ -119,7 +119,7 @@ def _get_reasoning_list(conf, logger, response):
                             ]),
                         })
 
-        elif conf["llms"]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
+        elif conf[llms_use]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
             for attr_name in [
                 "reasoning",
                 "reasoning_content",
@@ -141,13 +141,13 @@ def _get_reasoning_list(conf, logger, response):
     return reasonings
 
 
-def _get_the_answer(conf, logger, response):
+def _get_the_answer(conf, logger, response, llms_use):
     answer = ""
     try:
-        if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
+        if conf[llms_use]["asking_form"] == LLM_API_FORM_RESPONSES:
             if hasattr(response, "output_text"):
                 answer = response.output_text
-        elif conf["llms"]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
+        elif conf[llms_use]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
             if hasattr(response.choices[0].message, "content"):
                 answer = response.choices[0].message.content
         if answer is None:
@@ -162,7 +162,9 @@ def _get_the_answer(conf, logger, response):
                     "the actual answer part of the output was empty",
                     "looking for an answer within the reasoning part",
                 ]))
-            for reasoning in _get_reasoning_list(conf, logger, response):
+            for reasoning in _get_reasoning_list(
+                conf, logger, response, llms_use
+            ):
                 if reasoning["text"]:
                     answer = reasoning["text"].strip()
                     if answer:
@@ -176,14 +178,16 @@ def _get_the_answer(conf, logger, response):
     return answer
 
 
-def _debug_response(conf, logger, response):
+def _debug_response(conf, logger, response, llms_use):
     try:
         logger.debug("\n".join(["response:", str(response)]))
     except Exception:
         pass
 
     try:
-        for reasoning in _get_reasoning_list(conf, logger, response):
+        for reasoning in _get_reasoning_list(
+            conf, logger, response, llms_use
+        ):
             if reasoning["text"]:
                 logger.debug("\n".join([
                     reasoning["name"].replace("_", " ") + ":",
@@ -194,14 +198,14 @@ def _debug_response(conf, logger, response):
         logger.debug("could not display the LLM reasoning")
 
 
-async def _exec_query_inner(conf, logger, querier, query_prompt):
+async def _exec_query_inner(conf, logger, querier, query_prompt, llms_use):
     response = None
     prompt_prefix = ""
     prompt_postfix = ""
     additional_req_params = {}
 
     model_name_parts = (
-        conf["llms"]["model_name"].lower().split(LLM_NAME_SEP)[1:]
+        conf[llms_use]["model_name"].lower().split(LLM_NAME_SEP)[1:]
     )
     force_to_think = LLM_NAME_THINK.lower() in model_name_parts
     force_to_cot = LLM_NAME_COT.lower() in model_name_parts
@@ -223,7 +227,7 @@ async def _exec_query_inner(conf, logger, querier, query_prompt):
     # some models tend to explode for thinking too long;
     # it leads to raising an exception that is caught here;
     try:
-        if conf["llms"]["asking_form"] == LLM_API_FORM_RESPONSES:
+        if conf[llms_use]["asking_form"] == LLM_API_FORM_RESPONSES:
             if conf["llms"]["max_tokens"] != 0:
                 additional_req_params["max_output_tokens"] = (
                     conf["llms"]["max_tokens"]
@@ -238,7 +242,7 @@ async def _exec_query_inner(conf, logger, querier, query_prompt):
                 store=False,
                 **additional_req_params,
             )
-        elif conf["llms"]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
+        elif conf[llms_use]["asking_form"] == LLM_API_FORM_CHAT_COMPLETIONS:
             # some OpenAI-compatible providers still do not support
             # the "responses" API: using the "completions" API for them;
             if conf["llms"]["max_tokens"] != 0:
@@ -270,13 +274,13 @@ async def _exec_query_inner(conf, logger, querier, query_prompt):
         return None
 
     if conf["debugging"]["query_sifting"]:
-        _debug_response(conf, logger, response)
+        _debug_response(conf, logger, response, llms_use)
 
-    return _get_the_answer(conf, logger, response)
+    return _get_the_answer(conf, logger, response, llms_use)
 
 
 async def exec_query(
-    conf, similar_articles, query, api_key, get_logger, subject_spec
+    conf, similar_articles, query, api_key, get_logger, subject_spec, is_guest
 ):
     """
     Queries an LLM and returns its answer.
@@ -289,6 +293,7 @@ async def exec_query(
     If the system is set to mock the LLM, it returns a mocked LLM answer.
     """
     logger = get_logger(__name__)
+    llms_use = "llms-guests" if is_guest else "llms-users"
 
     http_client_params = {
         "limits": httpx.Limits(
@@ -298,17 +303,19 @@ async def exec_query(
         "timeout": conf["llms"]["timeout"],
     }
 
-    if conf["llms"]["cert_path"]["value"]:
+    if conf[llms_use]["cert_path"]["value"]:
         ssl_context = ssl.create_default_context()
-        ssl_context.load_verify_locations(conf["llms"]["cert_path"]["path"])
-        if conf["llms"]["cert_noname"]:
+        ssl_context.load_verify_locations(
+            conf[llms_use]["cert_path"]["path"]
+        )
+        if conf[llms_use]["cert_noname"]:
             ssl_context.check_hostname = False
         http_client_params["verify"] = ssl_context
 
     async with httpx.AsyncClient(
         **http_client_params
     ) as http_client:
-        querier = _get_querier(conf, api_key, http_client)
+        querier = _get_querier(conf, api_key, http_client, llms_use)
 
         query_prompt = "\n".join([
             _get_system_text(conf, similar_articles),
@@ -323,4 +330,6 @@ async def exec_query(
                 await asyncio.sleep(conf["mocking"]["mocking_delay"])
             return answer
 
-        return await _exec_query_inner(conf, logger, querier, query_prompt)
+        return await _exec_query_inner(
+            conf, logger, querier, query_prompt, llms_use
+        )
