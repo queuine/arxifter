@@ -94,8 +94,8 @@ note_users_html = false
 
 [ui]
 # a technical part that can be left unchanged;
-# for cookie that keeps user id if users ask for it
-user_id = "arxifter.userid"
+# for cookie that keeps user token if users ask for it
+user_id = "arxifter.usertoken"
 # how many days that cookie should be kept;
 # it gets auto-renewed if user visits arxifter meanwhile
 retain_user = 30

@@ -309,6 +309,7 @@ body:has(.arxifter-page-popup[open]) {
 }
 #popup-users-input-user {
     grid-column: 2 / span 2;
+    border-width: 1px;
 }
 #popup-users-checkbox-remember {
     width: fit-content;

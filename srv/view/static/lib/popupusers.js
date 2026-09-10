@@ -70,7 +70,7 @@ class PopupUsers extends React.Component {
     };
   }
   render() {
-    const idRetentionLabel = "The id is kept in a cookie when it is remembered.";
+    const idRetentionLabel = "The token is kept in a cookie when it is remembered.";
     const agreeEvaluationLabel = "Agree to the evaluation-only use.";
     return /*#__PURE__*/React.createElement("div", {
       open: true,
@@ -85,7 +85,7 @@ class PopupUsers extends React.Component {
       id: "popup-users-form"
     }, /*#__PURE__*/React.createElement("button", {
       id: "popup-users-form-user",
-      title: this.state.asGuest ? "Click to switch to the regular-user mode." : "Fill in your user id.",
+      title: this.state.asGuest ? "Click to switch to the regular-user mode." : "Fill in your user token.",
       htmlFor: "popup-users-input-user",
       className: this.state.asGuest ? "popup-users-form-label " + "popup-users-form-label-that" : "popup-users-form-label " + "popup-users-form-label-this",
       onClick: e => {
@@ -97,12 +97,12 @@ class PopupUsers extends React.Component {
           this.inputRef.current?.focus();
         }
       }
-    }, "User id"), /*#__PURE__*/React.createElement("input", {
+    }, "Token"), /*#__PURE__*/React.createElement("input", {
       type: "password",
       size: "32",
       className: this.state.asGuest && "popup-users-form-label-invisible",
       id: "popup-users-input-user",
-      title: "Fill in your user id if you already have one.",
+      title: "Fill in your user token if you already have one.",
       ref: this.inputRef,
       autofocus: this.state.asGuest ? false : 'true',
       disabled: this.state.asGuest ? true : false,
@@ -127,7 +127,7 @@ class PopupUsers extends React.Component {
       title: idRetentionLabel,
       htmlFor: "popup-users-checkbox-remember",
       className: this.state.asGuest ? "popup-users-form-label-inner " + "popup-users-form-label-disabled" : "popup-users-form-label-inner"
-    }, "remember the id"), this.withGuest && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    }, "remember the token"), this.withGuest && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
       id: "popup-users-separator"
     }, /*#__PURE__*/React.createElement("hr", null)), /*#__PURE__*/React.createElement("button", {
       id: "popup-users-form-guest",

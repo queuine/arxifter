@@ -77,7 +77,7 @@ class PopupUsers extends React.Component {
 
     render() {
         const idRetentionLabel = (
-            "The id is kept in a cookie when it is remembered."
+            "The token is kept in a cookie when it is remembered."
         );
         const agreeEvaluationLabel = (
             "Agree to the evaluation-only use."
@@ -105,7 +105,7 @@ class PopupUsers extends React.Component {
                             ?
                             "Click to switch to the regular-user mode."
                             :
-                            "Fill in your user id."
+                            "Fill in your user token."
                         }
                         htmlFor="popup-users-input-user"
                         className={
@@ -131,7 +131,7 @@ class PopupUsers extends React.Component {
                             }
                         }}
                     >
-                        User id
+                        Token
                     </button>
                     <input
                         type="password"
@@ -141,7 +141,7 @@ class PopupUsers extends React.Component {
                             "popup-users-form-label-invisible"
                         }
                         id="popup-users-input-user"
-                        title="Fill in your user id if you already have one."
+                        title="Fill in your user token if you already have one."
                         ref={this.inputRef}
                         autofocus={this.state.asGuest ? false : 'true'}
                         disabled={this.state.asGuest ? true : false}
@@ -179,7 +179,7 @@ class PopupUsers extends React.Component {
                             "popup-users-form-label-inner"
                         }
                     >
-                        remember the id
+                        remember the token
                     </label>
                     {this.withGuest &&
                     <>
